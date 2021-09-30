@@ -586,7 +586,7 @@
         (location.search.match(/streamid=([^&]+)/i) || [])[1] || STREAM_ID;
       query(id, {
         from: [{ collectionId: "posts" }],
-        limit: 50,
+        limit: 1000,
         orderBy: [
           { field: { fieldPath: "pinned" }, direction: "DESCENDING" },
           { field: { fieldPath: "createdAt" }, direction: "DESCENDING" },

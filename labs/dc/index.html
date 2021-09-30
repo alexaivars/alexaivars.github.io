@@ -514,10 +514,10 @@
             <% } %>
 
             <div class="author">
-              <%if(this.avatarId) {%>
+              <%if(this.avatarSrc) {%>
                 <div class="author_avatar">
                   <img
-                    src="https://svt-direktcenter-avatar.imgix.net/<%this.avatarId%>"
+                    src="<%this.avatarSrc%>"
                     alt="<%this.name%> bylinebild"
                     class="author_avatar_image"
                   />
@@ -590,10 +590,20 @@
             let context = post.replies?.length ? role : "feed";
             let pinned = post.pinned;
             let id = post.name.split("/").pop();
+
+            let avatarSrc = post.author?.avatar?.path
+              ? "https://svt-direktcenter-avatar.imgix.net" +
+                post.author.avatar.path
+              : role === "svt"
+              ? "https://www.svtstatic.se/news/news-render/dist/direktcenter-svt-icon-f8f361d695770c8f53a5.svg"
+              : role === "visitor"
+              ? "https://www.svtstatic.se/news/news-render/dist/direktcenter-guest-icon-a764b3a62ba4fa57ca3a.svg"
+              : null;
+
             root.appendChild(
               TemplateEngine(template, {
                 attachment: post.attachment,
-                avatarId: post.author?.avatar?.path,
+                avatarSrc,
                 body: post.body,
                 context,
                 datetime: post.createdAt,
@@ -633,9 +643,7 @@
         .then(() => {
           let id = window.location.hash.replace("#", "");
           if (id) {
-            document
-              .getElementById(id)
-              ?.scrollIntoView(true);
+            document.getElementById(id)?.scrollIntoView(true);
           }
         });
     </script>

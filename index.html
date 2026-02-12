@@ -11,7 +11,7 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a18}
 #artwork-root{width:100%;height:100%;position:relative}
 canvas#c{display:block;width:100vw;height:100vh;image-rendering:pixelated;image-rendering:crisp-edges}
-#vignette{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at center,transparent 30%,rgba(10,10,24,0.55)100%)}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at center,transparent 25%,rgba(8,8,22,0.6)100%)}
 #ui{position:fixed;bottom:20px;left:20px;font:12px/1.8 'Courier New',monospace;color:rgba(200,200,220,0.6);z-index:10;user-select:none;opacity:0;transition:opacity .4s;pointer-events:none}
 #ui.show{opacity:1;pointer-events:auto}
 #ui button{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(200,200,220,0.65);font:11px 'Courier New',monospace;padding:3px 8px;cursor:pointer;margin:2px 3px 2px 0;transition:all .2s}
@@ -35,7 +35,7 @@ canvas#c{display:block;width:100vw;height:100vh;image-rendering:pixelated;image-
 (function(){'use strict';
 var SHA='SHA_PLACEHOLDER';
 
-/* ── PRNG (mulberry32) ── */
+/* ── PRNG ── */
 function mb32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
 /* ── URL params ── */
@@ -55,10 +55,10 @@ var cv=document.getElementById('c'),ctx=cv.getContext('2d');
 var gW,gH;
 
 function resize(){
-  var ps=Math.max(6,Math.min(16,Math.round(Math.min(innerWidth,innerHeight)/75)));
-  gW=Math.min(200,Math.ceil(innerWidth/ps));
-  gH=Math.min(200,Math.ceil(innerHeight/ps));
-  if(redMo){gW=Math.min(gW,100);gH=Math.min(gH,100)}
+  var ps=Math.max(8,Math.min(16,Math.round(Math.min(innerWidth,innerHeight)/70)));
+  gW=Math.min(180,Math.ceil(innerWidth/ps));
+  gH=Math.min(180,Math.ceil(innerHeight/ps));
+  if(redMo){gW=Math.min(gW,90);gH=Math.min(gH,90)}
   cv.width=gW;cv.height=gH;
 }
 
@@ -68,27 +68,31 @@ function hsl(h,s,l){
   var c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2,r,g,b;
   if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}
   else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
-  return[(r+m)*255|0,(g+m)*255|0,(b+m)*255|0];
+  return[(r+m)*255,(g+m)*255,(b+m)*255];
 }
+function mix(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
 
 /* ── Face param generation ── */
 function genFace(r){
+  var skinH=r()*360;
   return{
-    headScale:.34+r()*.12,headRatio:1.15+r()*.25,jawW:.55+r()*.35,faceY:.42+r()*.06,
-    eyeY:.35+r()*.08,eyeSp:.22+r()*.14,eyeW:.13+r()*.09,eyeH:.07+r()*.07,
-    irisR:.55+r()*.35,pupilR:.35+r()*.25,
-    browOff:.06+r()*.08,browW:1+r()*.4,browTh:.4+r()*.6,browAng:-.1+r()*.2,
-    noseY:.52+r()*.08,noseW:.04+r()*.06,noseH:.08+r()*.1,
-    mouthY:.70+r()*.08,mouthW:.14+r()*.18,mouthTh:.4+r()*1.2,mouthCrv:-.12+r()*.24,
-    skinH:r()*360,skinS:.30+r()*.30,skinL:.58+r()*.22,
-    eyeH2:r()*360,eyeS:.50+r()*.40,eyeL:.45+r()*.20,
-    browH:r()*360,browS:.15+r()*.25,browL:.25+r()*.15,
-    mouthH2:(330+r()*50)%360,mouthS:.35+r()*.30,mouthL:.50+r()*.20,
-    asymX:-.03+r()*.06,asymY:-.02+r()*.04,browAsym:-.03+r()*.06
+    headScale:.40+r()*.10,headRatio:1.18+r()*.22,jawW:.58+r()*.32,faceY:.43+r()*.04,
+    eyeY:.36+r()*.06,eyeSp:.24+r()*.12,eyeW:.15+r()*.08,eyeH:.08+r()*.06,
+    irisR:.60+r()*.30,pupilR:.38+r()*.22,
+    browOff:.07+r()*.06,browW:1.05+r()*.35,browTh:.5+r()*.5,browAng:-.08+r()*.16,
+    noseY:.53+r()*.06,noseW:.04+r()*.05,noseH:.08+r()*.08,
+    mouthY:.72+r()*.06,mouthW:.16+r()*.14,mouthTh:.5+r()*.8,mouthCrv:-.08+r()*.16,
+    cheekY:.55+r()*.06,cheekW:.25+r()*.08,cheekStr:.08+r()*.12,
+    skinH:skinH,skinS:.35+r()*.25,skinL:.62+r()*.18,
+    eyeH2:r()*360,eyeS:.55+r()*.35,eyeL:.50+r()*.18,
+    browH:(skinH+120+r()*60)%360,browS:.12+r()*.20,browL:.22+r()*.13,
+    mouthH2:(340+r()*40)%360,mouthS:.40+r()*.25,mouthL:.52+r()*.18,
+    glowH:(skinH+180+r()*60)%360,glowS:.30+r()*.30,glowL:.15+r()*.10,
+    asymX:-.025+r()*.05,asymY:-.015+r()*.03,browAsym:-.02+r()*.04
   };
 }
 
-/* ── Lerp faces ── */
+/* ── Lerp ── */
 function lerpF(a,b,t){var r={};for(var k in a)r[k]=typeof a[k]==='number'?a[k]+(b[k]-a[k])*t:a[k];return r}
 function ss(t){return t*t*(3-2*t)}
 
@@ -97,21 +101,21 @@ var faces=[];for(var i=0;i<6;i++)faces.push(genFace(rng));
 var fIdx=0,mT=0;
 
 function mSpeed(){
-  var b=redMo?.0003:.0008;
-  return mood==='calm'?b*.6:mood==='glitch'?b*2.5:mood==='intense'?b*1.5:b;
+  var b=redMo?.0004:.001;
+  return mood==='calm'?b*.5:mood==='glitch'?b*2.8:mood==='intense'?b*1.6:b;
 }
 
-/* ── Gaze tracking ── */
-var mx=-1,my=-1,mAct=false,idle=0;
+/* ── Gaze ── */
+var mouseX=-1,mouseY=-1,mAct=false,idle=0;
 var gx=0,gy=0,tgx=0,tgy=0;
-cv.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;mAct=true;idle=0});
+cv.addEventListener('mousemove',function(e){mouseX=e.clientX;mouseY=e.clientY;mAct=true;idle=0});
 cv.addEventListener('mouseleave',function(){mAct=false});
-cv.addEventListener('touchmove',function(e){e.preventDefault();mx=e.touches[0].clientX;my=e.touches[0].clientY;mAct=true;idle=0},{passive:false});
-cv.addEventListener('touchstart',function(e){mx=e.touches[0].clientX;my=e.touches[0].clientY;mAct=true;idle=0},{passive:true});
+cv.addEventListener('touchmove',function(e){e.preventDefault();mouseX=e.touches[0].clientX;mouseY=e.touches[0].clientY;mAct=true;idle=0},{passive:false});
+cv.addEventListener('touchstart',function(e){mouseX=e.touches[0].clientX;mouseY=e.touches[0].clientY;mAct=true;idle=0},{passive:true});
 cv.addEventListener('touchend',function(){mAct=false});
 
-/* ── Blink system ── */
-var blinkT=0,blinking=false,nextBlink=3+rng()*4,blinkDur=.12;
+/* ── Blink ── */
+var blinkT=0,blinking=false,nextBlink=3+rng()*4,blinkDur=.13;
 
 /* ── Time ── */
 var time=0;
@@ -125,30 +129,31 @@ function render(){
   mT+=mSpeed();
   if(mT>=1){mT-=1;fIdx++;if(fIdx>=faces.length-1)faces.push(genFace(rng))}
   var t=ss(mT);
-  if(mood==='glitch'){t+=Math.sin(time*47)*.015;t=Math.max(0,Math.min(1,t))}
+  if(mood==='glitch'){t+=Math.sin(time*47)*.02;t=Math.max(0,Math.min(1,t))}
   var f=lerpF(faces[fIdx],faces[fIdx+1],t);
 
   /* Gaze */
   idle+=dt;
   if(mAct&&idle<3){
-    var fcxS=innerWidth*.5,fcyS=innerHeight*f.faceY;
-    tgx=Math.max(-1,Math.min(1,(mx-fcxS)/(innerWidth*.5)));
-    tgy=Math.max(-1,Math.min(1,(my-fcyS)/(innerHeight*.5)));
+    var sx=innerWidth*.5,sy=innerHeight*f.faceY;
+    tgx=Math.max(-1,Math.min(1,(mouseX-sx)/(innerWidth*.45)));
+    tgy=Math.max(-1,Math.min(1,(mouseY-sy)/(innerHeight*.45)));
   }else{tgx=0;tgy=0}
-  var gs=redMo?.04:.08;
+  var gs=redMo?.04:.09;
   gx+=(tgx-gx)*gs;gy+=(tgy-gy)*gs;
 
   /* Blink */
   blinkT+=dt;
   if(!blinking&&blinkT>=nextBlink){blinking=true;blinkT=0}
-  if(blinking&&blinkT>=blinkDur){blinking=false;blinkT=0;nextBlink=2+Math.random()*5}
-  var blinkAmt=blinking?Math.max(0,1-Math.abs(blinkT/blinkDur*2-1)*3):0;
+  if(blinking&&blinkT>=blinkDur){blinking=false;blinkT=0;nextBlink=2.5+Math.random()*4.5}
+  var bAmt=blinking?1-Math.abs(blinkT/blinkDur*2-1):0;
+  bAmt=bAmt*bAmt;
 
   /* Breathing */
-  var breath=Math.sin(time*1.2)*.01;
-  var breathY=Math.sin(time*1.2)*.3;
+  var breath=Math.sin(time*1.15)*.008;
+  var breathY=Math.sin(time*1.15)*.25;
 
-  /* Face geometry */
+  /* Face dims */
   var minD=Math.min(gW,gH);
   var fW=minD*f.headScale,fH=fW*f.headRatio*(1+breath);
   var cx=gW*.5,cy=gH*f.faceY+breathY;
@@ -157,34 +162,40 @@ function render(){
   /* Eyes */
   var eyY=cy-hh+f.eyeY*fH;
   var eLX=cx-f.eyeSp*fW*.5,eRX=cx+f.eyeSp*fW*.5+f.asymX*fW;
-  var eRY2=eyY+f.asymY*fH;
+  var eRYoff=eyY+f.asymY*fH;
   var ewP=f.eyeW*fW*.5,ehP=f.eyeH*fH*.5;
-  var ehBlink=ehP*(1-blinkAmt*.9);
-  var irP=f.irisR*ehP,puP=f.pupilR*irP;
-  var gazeMaxX=ewP*.3,gazeMaxY=ehP*.25;
+  var ehB=ehP*(1-bAmt*.92);
+  var irR=f.irisR*ehP,puR=f.pupilR*irR;
+  var gmx=ewP*.32,gmy=ehP*.28;
 
   /* Brows */
-  var brY=eyY-f.browOff*fH;
-  var brW=ewP*f.browW,brTh=f.browTh;
+  var brY=eyY-f.browOff*fH,brW=ewP*f.browW,brTh=f.browTh;
 
-  /* Nose */
+  /* Nose + Mouth */
   var noY=cy-hh+f.noseY*fH,noW=f.noseW*fW*.5,noH=f.noseH*fH;
-
-  /* Mouth */
   var moY=cy-hh+f.mouthY*fH,moW=f.mouthW*fW*.5,moTh=f.mouthTh;
+
+  /* Cheeks */
+  var chY=cy-hh+f.cheekY*fH;
+  var chLX=cx-f.cheekW*fW,chRX=cx+f.cheekW*fW;
 
   /* Colors */
   var skinC=hsl(f.skinH,f.skinS,f.skinL);
-  var skinD=hsl(f.skinH,f.skinS*.8,f.skinL*.75);
+  var skinD=hsl(f.skinH,f.skinS*.8,f.skinL*.72);
+  var skinLt=hsl(f.skinH,f.skinS*.5,Math.min(.95,f.skinL*1.12));
   var eyeC=hsl(f.eyeH2,f.eyeS,f.eyeL);
-  var eyeD=hsl(f.eyeH2,f.eyeS*.9,f.eyeL*.6);
+  var eyeD=hsl(f.eyeH2,f.eyeS*.8,f.eyeL*.55);
+  var irisRing=hsl(f.eyeH2,f.eyeS*.7,f.eyeL*.4);
   var brC=hsl(f.browH,f.browS,f.browL);
   var moC=hsl(f.mouthH2,f.mouthS,f.mouthL);
+  var moD=hsl(f.mouthH2,f.mouthS*.9,f.mouthL*.6);
+  var chkC=hsl((f.skinH+340)%360,.45,f.skinL*.95);
+  var glowC=hsl(f.glowH,f.glowS,f.glowL);
 
-  /* Background base */
-  var bgH=240+Math.sin(time*.3)*15;
-  var bg1=hsl(bgH,.3,.06);
-  var bg2=hsl(bgH+10,.2,.10);
+  /* Background */
+  var bgH=240+Math.sin(time*.25)*12;
+  var bg1=hsl(bgH,.28,.05);
+  var bg2=hsl(bgH+8,.18,.09);
 
   var img=ctx.createImageData(gW,gH);
   var d=img.data;
@@ -193,108 +204,187 @@ function render(){
     for(var px=0;px<gW;px++){
       var idx=(py*gW+px)*4;
 
-      /* Background */
+      /* BG gradient */
       var bdx=(px-cx)/(gW*.5),bdy=(py-cy)/(gH*.5);
       var bd=Math.sqrt(bdx*bdx+bdy*bdy);
-      var bt=Math.min(1,bd*.7);
+      var bt=Math.min(1,bd*.65);
       var cr=bg2[0]+(bg1[0]-bg2[0])*bt;
       var cg=bg2[1]+(bg1[1]-bg2[1])*bt;
       var cb=bg2[2]+(bg1[2]-bg2[2])*bt;
 
-      /* Subtle dot grid */
-      if(px%4===0&&py%4===0){cr+=3;cg+=3;cb+=4}
+      /* BG dot grid */
+      if(px%5===0&&py%5===0){cr+=2;cg+=2;cb+=3}
+
+      /* Face glow on background */
+      var glDx=(px-cx)/hw,glDy=(py-cy)/hh;
+      var glD=Math.sqrt(glDx*glDx+glDy*glDy);
+      if(glD>1&&glD<2.5){
+        var glStr=(1-(glD-1)/1.5)*.15;
+        cr+=glowC[0]*glStr;cg+=glowC[1]*glStr;cb+=glowC[2]*glStr;
+      }
 
       /* Head */
       var hnx=(px-cx)/hw,hny=(py-cy)/hh;
       var inside=false;
-      if(hny>=-1.05&&hny<=1.05){
+      if(hny>=-1.02&&hny<=1.02){
         var tw;
-        if(hny<=0)tw=Math.sqrt(Math.max(0,1-hny*hny));
-        else{var jw=f.jawW;tw=1-(1-jw)*hny*hny;var ew=Math.sqrt(Math.max(0,1-hny*hny));tw=Math.min(tw,ew)}
+        if(hny<=0){tw=Math.sqrt(Math.max(0,1-hny*hny))}
+        else{
+          var jw=f.jawW;
+          tw=1-(1-jw)*hny*hny;
+          var ew=Math.sqrt(Math.max(0,1-hny*hny));
+          tw=Math.min(tw,ew);
+        }
         if(Math.abs(hnx)<=tw){
           inside=true;
-          var sh=1-Math.abs(hnx)*.15-hny*.05;
-          if(Math.abs(hnx)>tw*.7)sh-=.1;
-          if(hny<-.3&&Math.abs(hnx)<.3)sh+=.05;
-          sh=Math.max(.7,Math.min(1.1,sh));
+          /* Shading */
+          var sh=1;
+          sh-=Math.abs(hnx)*.12;
+          sh-=hny*.04;
+          if(Math.abs(hnx)>tw*.72)sh-=.08;
+          if(hny<-.35&&Math.abs(hnx)<.3)sh+=.04;
+          sh=Math.max(.72,Math.min(1.08,sh));
+          /* Edge highlight */
+          var edge=tw-Math.abs(hnx);
+          if(edge<.08&&edge>=0&&hnx<0)sh+=.06;
           cr=skinC[0]*sh;cg=skinC[1]*sh;cb=skinC[2]*sh;
         }
       }
 
       if(inside){
+        /* Cheek blush */
+        var chLD=Math.sqrt((px-chLX)*(px-chLX)+(py-chY)*(py-chY));
+        var chRD=Math.sqrt((px-chRX)*(px-chRX)+(py-chY)*(py-chY));
+        var chRad=fW*.12;
+        if(chLD<chRad){
+          var chT=(1-chLD/chRad)*f.cheekStr;
+          cr+=(chkC[0]-cr)*chT;cg+=(chkC[1]-cg)*chT;cb+=(chkC[2]-cb)*chT;
+        }
+        if(chRD<chRad){
+          var chT2=(1-chRD/chRad)*f.cheekStr;
+          cr+=(chkC[0]-cr)*chT2;cg+=(chkC[1]-cg)*chT2;cb+=(chkC[2]-cb)*chT2;
+        }
+
         /* Nose */
         var nny=(py-noY)/noH;
         if(nny>=0&&nny<=1){
-          var nhw=noW*nny;
+          var nhw=noW*(nny*.7+.3);
           var nnx=px-cx;
-          if(Math.abs(nnx)<=nhw){cr*=.92;cg*=.92;cb*=.92}
-          if(nny>.8&&Math.abs(Math.abs(nnx)-noW*.4)<.8){cr=skinD[0];cg=skinD[1];cb=skinD[2]}
+          if(Math.abs(nnx)<=nhw){cr*=.93;cg*=.93;cb*=.93}
+          if(nny>.82&&Math.abs(Math.abs(nnx)-noW*.35)<.9){cr=skinD[0];cg=skinD[1];cb=skinD[2]}
         }
 
         /* Mouth */
         var mnx=(px-cx)/moW;
         if(Math.abs(mnx)<=1){
-          var coff=f.mouthCrv*(1-mnx*mnx)*moW*2;
-          var mdy=py-(moY+coff);
-          if(Math.abs(mdy)<=moTh*.5+.5){
-            cr=moC[0];cg=moC[1];cb=moC[2];
-            if(Math.abs(mdy)<.5){cr*=.7;cg*=.7;cb*=.7}
+          var curv=f.mouthCrv*(1-mnx*mnx)*moW*1.5;
+          var mdy=py-(moY+curv);
+          if(Math.abs(mdy)<=moTh*.5+.6){
+            /* Upper/lower lip color */
+            if(mdy<0){cr=moC[0];cg=moC[1];cb=moC[2]}
+            else{cr=moC[0]*.9;cg=moC[1]*.9;cb=moC[2]*.9}
+            /* Dark center line */
+            if(Math.abs(mdy)<.45){cr=moD[0];cg=moD[1];cb=moD[2]}
           }
         }
 
+        /* ── EYES ── */
         /* Left eye */
-        var elx=(px-eLX)/ewP,ely=(py-eyY)/ehBlink;
-        if(elx*elx+ely*ely<1){
-          cr=235;cg=235;cb=240;
-          var icx=eLX+gx*gazeMaxX,icy=eyY+gy*gazeMaxY;
-          var id2=Math.sqrt((px-icx)*(px-icx)+(py-icy)*(py-icy));
-          if(id2<irP&&!blinking){
-            var it=id2/irP;
-            cr=eyeC[0]+(eyeD[0]-eyeC[0])*it*.5;
-            cg=eyeC[1]+(eyeD[1]-eyeC[1])*it*.5;
-            cb=eyeC[2]+(eyeD[2]-eyeC[2])*it*.5;
-            if(id2<puP){
-              cr=15;cg=12;cb=20;
-              if(Math.abs(px-(icx-puP*.3))<.8&&Math.abs(py-(icy-puP*.4))<.8){cr=240;cg=245;cb=255}
+        var elx=(px-eLX)/ewP,ely=(py-eyY)/ehB;
+        var eld=elx*elx+ely*ely;
+        if(eld<1){
+          /* Sclera with subtle gradient */
+          var sclSh=.92+ely*.06;
+          cr=238*sclSh;cg=237*sclSh;cb=243*sclSh;
+
+          if(!blinking||bAmt<.7){
+            /* Iris */
+            var iox=eLX+gx*gmx,ioy=eyY+gy*gmy;
+            var idx2=(px-iox)*(px-iox)+(py-ioy)*(py-ioy);
+            var idr=Math.sqrt(idx2);
+            if(idr<irR){
+              var iT=idr/irR;
+              /* Outer ring */
+              if(iT>.75){
+                var rT=(iT-.75)/.25;
+                cr=irisRing[0]+(eyeC[0]-irisRing[0])*rT;
+                cg=irisRing[1]+(eyeC[1]-irisRing[1])*rT;
+                cb=irisRing[2]+(eyeC[2]-irisRing[2])*rT;
+              }else{
+                cr=eyeC[0]+(eyeD[0]-eyeC[0])*iT*.6;
+                cg=eyeC[1]+(eyeD[1]-eyeC[1])*iT*.6;
+                cb=eyeC[2]+(eyeD[2]-eyeC[2])*iT*.6;
+              }
+              /* Pupil */
+              if(idr<puR){
+                cr=12;cg=10;cb=18;
+                /* Highlight */
+                var hlx=iox-puR*.35,hly=ioy-puR*.45;
+                if(Math.abs(px-hlx)<.85&&Math.abs(py-hly)<.85){cr=245;cg=248;cb=255}
+              }
             }
           }
         }
 
         /* Right eye */
-        var erx=(px-eRX)/ewP,ery=(py-eRY2)/ehBlink;
-        if(erx*erx+ery*ery<1){
-          cr=235;cg=235;cb=240;
-          var icx2=eRX+gx*gazeMaxX,icy2=eRY2+gy*gazeMaxY;
-          var id3=Math.sqrt((px-icx2)*(px-icx2)+(py-icy2)*(py-icy2));
-          if(id3<irP&&!blinking){
-            var it2=id3/irP;
-            cr=eyeC[0]+(eyeD[0]-eyeC[0])*it2*.5;
-            cg=eyeC[1]+(eyeD[1]-eyeC[1])*it2*.5;
-            cb=eyeC[2]+(eyeD[2]-eyeC[2])*it2*.5;
-            if(id3<puP){
-              cr=15;cg=12;cb=20;
-              if(Math.abs(px-(icx2-puP*.3))<.8&&Math.abs(py-(icy2-puP*.4))<.8){cr=240;cg=245;cb=255}
+        var erx=(px-eRX)/ewP,ery=(py-eRYoff)/ehB;
+        var erd=erx*erx+ery*ery;
+        if(erd<1){
+          var sclSh2=.92+ery*.06;
+          cr=238*sclSh2;cg=237*sclSh2;cb=243*sclSh2;
+
+          if(!blinking||bAmt<.7){
+            var iox2=eRX+gx*gmx,ioy2=eRYoff+gy*gmy;
+            var idx3=(px-iox2)*(px-iox2)+(py-ioy2)*(py-ioy2);
+            var idr2=Math.sqrt(idx3);
+            if(idr2<irR){
+              var iT2=idr2/irR;
+              if(iT2>.75){
+                var rT2=(iT2-.75)/.25;
+                cr=irisRing[0]+(eyeC[0]-irisRing[0])*rT2;
+                cg=irisRing[1]+(eyeC[1]-irisRing[1])*rT2;
+                cb=irisRing[2]+(eyeC[2]-irisRing[2])*rT2;
+              }else{
+                cr=eyeC[0]+(eyeD[0]-eyeC[0])*iT2*.6;
+                cg=eyeC[1]+(eyeD[1]-eyeC[1])*iT2*.6;
+                cb=eyeC[2]+(eyeD[2]-eyeC[2])*iT2*.6;
+              }
+              if(idr2<puR){
+                cr=12;cg=10;cb=18;
+                var hlx2=iox2-puR*.35,hly2=ioy2-puR*.45;
+                if(Math.abs(px-hlx2)<.85&&Math.abs(py-hly2)<.85){cr=245;cg=248;cb=255}
+              }
             }
           }
         }
 
-        /* Left brow */
-        var blx=(px-eLX)/brW;
-        if(Math.abs(blx)<1){
-          var bline=brY+f.browAng*(px-eLX);
-          if(Math.abs(py-bline)<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
+        /* Brows */
+        var bLx=(px-eLX)/brW;
+        if(Math.abs(bLx)<1){
+          var bL=brY+f.browAng*(px-eLX);
+          var bDy=Math.abs(py-bL);
+          if(bDy<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
         }
-
-        /* Right brow */
-        var brx2=(px-eRX)/brW;
-        if(Math.abs(brx2)<1){
-          var bline2=brY-f.browAsym*fH+(-f.browAng+f.browAsym)*(px-eRX);
-          if(Math.abs(py-bline2)<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
+        var bRx=(px-eRX)/brW;
+        if(Math.abs(bRx)<1){
+          var bR=brY-f.browAsym*fH+(-f.browAng+f.browAsym)*(px-eRX);
+          var bDy2=Math.abs(py-bR);
+          if(bDy2<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
         }
       }
 
-      /* Glitch scanline */
-      if(mood==='glitch'&&Math.sin(time*37+py*.5)>.97){cr+=30;cg-=20;cb+=40}
+      /* Glitch */
+      if(mood==='glitch'){
+        if(Math.sin(time*37+py*.5)>.96){cr+=35;cg-=25;cb+=45}
+        if(Math.sin(time*23+px*.3)>.985){
+          var tmp=cr;cr=cb;cb=tmp;
+        }
+      }
+      /* Intense pulse */
+      if(mood==='intense'){
+        var pulse=Math.sin(time*3)*.03+.03;
+        cr*=1+pulse;cg*=1+pulse;cb*=1+pulse;
+      }
 
       d[idx]=Math.max(0,Math.min(255,cr|0));
       d[idx+1]=Math.max(0,Math.min(255,cg|0));
@@ -344,10 +434,8 @@ document.addEventListener('visibilitychange',function(){
   else{paused=false;loop()}
 });
 
-/* ── Resize ── */
 addEventListener('resize',function(){resize()});
 
-/* ── Init ── */
 resize();loop();
 })();
 </script>

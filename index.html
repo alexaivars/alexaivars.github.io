@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="edition" content="73e971c">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Entropy vs Order — a generative artwork exploring the tension between mathematical order and inevitable entropy.">
 <title>Entropy vs Order — aivars.se</title>
 <!-- Build: 73e971c -->
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#080810}
-canvas{display:block;width:100%;height:100%}
+canvas{display:block;width:100%;height:100%;cursor:none}
+body.cursor-active canvas{cursor:default}
 body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(8,8,16,0.55) 100%);pointer-events:none;z-index:1}
 #ui{position:fixed;bottom:20px;left:20px;font:11px/1.6 'Courier New',monospace;color:rgba(180,180,190,0.4);z-index:10;user-select:none;pointer-events:none;opacity:0;transition:opacity .5s}
 #ui.show{opacity:1}
@@ -74,8 +77,9 @@ var particles=[],gTime=0,pTime=0,manualPhase=-1;
 var symN,timeStep,lastLabel='';
 
 /* ── Mouse ── */
-var mx=-9999,my=-9999,mActive=false;
-cv.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;mActive=true});
+var mx=-9999,my=-9999,mActive=false,cursorTimer;
+function showCursor(){document.body.classList.add('cursor-active');clearTimeout(cursorTimer);cursorTimer=setTimeout(function(){document.body.classList.remove('cursor-active')},3000)}
+cv.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;mActive=true;showCursor()});
 cv.addEventListener('mouseleave',function(){mActive=false});
 cv.addEventListener('touchmove',function(e){e.preventDefault();mx=e.touches[0].clientX;my=e.touches[0].clientY;mActive=true},{passive:false});
 cv.addEventListener('touchend',function(){mActive=false});
@@ -244,6 +248,7 @@ function draw(){
   if(lastLabel!==labelStr){lastLabel=labelStr;document.getElementById('phase-label').textContent=labelStr}
 }
 
+function startLoop(){if(fid)cancelAnimationFrame(fid);fid=0;loop()}
 function loop(){if(!paused){draw();fid=requestAnimationFrame(loop)}}
 
 /* ── UI ── */
@@ -256,13 +261,13 @@ document.addEventListener('keydown',function(e){
   else if(e.key==='2'){manualPhase=1}
   else if(e.key==='3'){manualPhase=2}
   else if(e.key==='0'){manualPhase=-1}
-  else if(e.key===' '){e.preventDefault();paused=!paused;userPaused=paused;if(!paused)loop()}
+  else if(e.key===' '){e.preventDefault();paused=!paused;userPaused=paused;if(!paused)startLoop()}
 });
 
 /* ── Visibility (pause when tab hidden) ── */
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){if(fid)cancelAnimationFrame(fid);paused=true}
-  else if(!userPaused){paused=false;loop()}
+  else if(!userPaused){paused=false;startLoop()}
 });
 
 /* ── Resize ── */
@@ -295,7 +300,11 @@ function init(){
   document.getElementById('ed-el').textContent='ed. '+SHA.substring(0,7);
   if(fid)cancelAnimationFrame(fid);
   paused=false;userPaused=false;
-  loop();
+  if(reducedMotion){
+    /* Reduced motion: render a static composition */
+    for(var f=0;f<120;f++)draw();
+    paused=true;
+  }else{startLoop()}
 }
 
 init();

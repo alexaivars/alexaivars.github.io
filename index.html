@@ -4,291 +4,351 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="edition" content="SHA_PLACEHOLDER">
-<title>Entropy vs Order — aivars.se</title>
+<title>Synthetic Gaze</title>
 <!-- Build: SHA_PLACEHOLDER -->
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#080810}
-canvas{display:block;width:100%;height:100%}
-body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(8,8,16,0.55) 100%);pointer-events:none;z-index:1}
-#ui{position:fixed;bottom:20px;left:20px;font:11px/1.6 'Courier New',monospace;color:rgba(180,180,190,0.4);z-index:10;user-select:none;pointer-events:none;opacity:0;transition:opacity .5s}
-#ui.show{opacity:1}
-#meta{position:fixed;bottom:16px;right:20px;font:10px/1.4 'Courier New',monospace;color:rgba(180,180,190,0.15);z-index:10;user-select:none;pointer-events:none;text-align:right}
-#hint{position:fixed;top:20px;right:20px;font:10px 'Courier New',monospace;color:rgba(180,180,190,0.2);z-index:10;user-select:none;pointer-events:none;transition:opacity 3s}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a18}
+#artwork-root{width:100%;height:100%;position:relative}
+canvas#c{display:block;width:100vw;height:100vh;image-rendering:pixelated;image-rendering:crisp-edges}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at center,transparent 30%,rgba(10,10,24,0.55)100%)}
+#ui{position:fixed;bottom:20px;left:20px;font:12px/1.8 'Courier New',monospace;color:rgba(200,200,220,0.6);z-index:10;user-select:none;opacity:0;transition:opacity .4s;pointer-events:none}
+#ui.show{opacity:1;pointer-events:auto}
+#ui button{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(200,200,220,0.65);font:11px 'Courier New',monospace;padding:3px 8px;cursor:pointer;margin:2px 3px 2px 0;transition:all .2s}
+#ui button:hover{background:rgba(255,255,255,0.12);color:#fff}
+#ui button.active{border-color:rgba(255,255,255,0.4);color:rgba(255,255,255,0.9)}
+#hint{position:fixed;top:20px;right:20px;font:10px 'Courier New',monospace;color:rgba(180,180,200,0.2);z-index:10;user-select:none;pointer-events:none;transition:opacity 4s}
+@media(prefers-reduced-motion:reduce){#hint{transition:none}}
 </style>
 </head>
-<body id="artwork-root">
-<canvas id="c" aria-label="Entropy vs Order — generative artwork"></canvas>
-<div id="ui">
-  <div id="phase-label">phase: order</div>
-  <div>1·2·3 phase | 0 auto | space pause</div>
-  <div>mouse: force field</div>
+<body>
+<div id="artwork-root">
+<canvas id="c" aria-label="Synthetic Gaze — generative pixel art"></canvas>
 </div>
-<div id="meta"><span id="seed-el"></span><br><span id="ed-el"></span></div>
+<div id="vignette"></div>
+<div id="ui">
+<div>seed: <span id="seed-val"></span> <button id="btn-regen">regenerate</button></div>
+<div>mood: <button class="mbtn" data-mood="calm">calm</button><button class="mbtn" data-mood="glitch">glitch</button><button class="mbtn" data-mood="intense">intense</button></div>
+</div>
 <div id="hint">? controls</div>
 <script>
 (function(){'use strict';
-
 var SHA='SHA_PLACEHOLDER';
 
 /* ── PRNG (mulberry32) ── */
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function mb32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
-function getSeed(){var p=new URLSearchParams(location.search),s=p.get('seed');return s!==null&&s!==''&&!isNaN(+s)?+s:Math.floor(Math.random()*999999)+1}
+/* ── URL params ── */
+var P=new URLSearchParams(location.search);
+var seed=P.get('seed');
+seed=(seed!==null&&seed!==''&&!isNaN(+seed))?+seed:(Math.random()*999999|0)+1;
+var mood=P.get('mood')||'calm';
+if(mood!=='calm'&&mood!=='glitch'&&mood!=='intense')mood='calm';
+var rng=mb32(seed);
 
-var seed=getSeed(),rng=mulberry32(seed),resetRng=mulberry32(seed+77777);
-
-/* ── Perlin noise ── */
-var perm=new Uint8Array(512);
-function buildPerm(r){var p=new Uint8Array(256);for(var i=0;i<256;i++)p[i]=i;for(var i=255;i>0;i--){var j=(r()*(i+1))|0;var t=p[i];p[i]=p[j];p[j]=t}for(var i=0;i<512;i++)perm[i]=p[i&255]}
-function fade(t){return t*t*t*(t*(t*6-15)+10)}
-function _lerp(a,b,t){return a+t*(b-a)}
-function grad2(h,x,y){var v=h&3;return((v&1)?-x:x)+((v&2)?-y:y)}
-function noise2(x,y){var xi=Math.floor(x)&255,yi=Math.floor(y)&255,xf=x-Math.floor(x),yf=y-Math.floor(y),u=fade(xf),v=fade(yf);return _lerp(_lerp(grad2(perm[perm[xi]+yi],xf,yf),grad2(perm[perm[xi+1]+yi],xf-1,yf),u),_lerp(grad2(perm[perm[xi]+yi+1],xf,yf-1),grad2(perm[perm[xi+1]+yi+1],xf-1,yf-1),u),v)}
-function fbm(x,y,oct){var v=0,a=1,f=1;for(var i=0;i<oct;i++){v+=noise2(x*f,y*f)*a;a*=0.5;f*=2}return v}
+/* ── Reduced motion ── */
+var redMo=matchMedia('(prefers-reduced-motion:reduce)').matches;
+matchMedia('(prefers-reduced-motion:reduce)').addEventListener('change',function(e){redMo=e.matches});
 
 /* ── Canvas ── */
-var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W,H;
-var paused=false,userPaused=false,fid;
-var reducedMotion=matchMedia('(prefers-reduced-motion:reduce)').matches;
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var gW,gH;
 
 function resize(){
-  var d=Math.min(devicePixelRatio||1,2);
-  W=innerWidth;H=innerHeight;
-  cv.width=W*d;cv.height=H*d;
-  ctx.setTransform(d,0,0,d,0,0);
+  var ps=Math.max(6,Math.min(16,Math.round(Math.min(innerWidth,innerHeight)/75)));
+  gW=Math.min(200,Math.ceil(innerWidth/ps));
+  gH=Math.min(200,Math.ceil(innerHeight/ps));
+  if(redMo){gW=Math.min(gW,100);gH=Math.min(gH,100)}
+  cv.width=gW;cv.height=gH;
 }
 
-/* ── Palette (4 colors: bg + 3 drawing) ── */
-var BG=[8,8,16];
-var C_ORDER=[207,194,176];
-var C_TENSION=[168,112,80];
-var C_ENTROPY=[96,120,144];
-
-/* ── Config ── */
-var MAX_P=1200,RED_P=300,MOB_P=600,pCount;
-var PHASE_DUR=60,TRANS_DUR=12;
-
-/* ── State ── */
-var particles=[],gTime=0,pTime=0,manualPhase=-1;
-var symN,timeStep;
-
-/* ── Mouse ── */
-var mx=-9999,my=-9999,mActive=false;
-cv.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;mActive=true});
-cv.addEventListener('mouseleave',function(){mActive=false});
-cv.addEventListener('touchmove',function(e){e.preventDefault();mx=e.touches[0].clientX;my=e.touches[0].clientY;mActive=true},{passive:false});
-cv.addEventListener('touchend',function(){mActive=false});
-
-/* ── Particle ── */
-function mkParticle(r){
-  var cw=W/2,ch=H/2,spread=Math.min(W,H)*0.38;
-  var a=r()*Math.PI*2,d=r()*spread;
-  return{x:cw+Math.cos(a)*d,y:ch+Math.sin(a)*d,vx:0,vy:0,
-    life:0,maxLife:400+r()*600,
-    alpha:0.007+r()*0.023,sz:0.4+r()*1.1,
-    ct:r(),targetR:0.12+r()*0.28,noff:r()*1000}
-}
-function rstParticle(p,r){
-  var cw=W/2,ch=H/2,spread=Math.min(W,H)*0.38;
-  var a=r()*Math.PI*2,d=r()*spread;
-  p.x=cw+Math.cos(a)*d;p.y=ch+Math.sin(a)*d;
-  p.vx=0;p.vy=0;p.life=0;p.maxLife=400+r()*600;
-  p.alpha=0.007+r()*0.023;p.sz=0.4+r()*1.1;
-  p.ct=r();p.targetR=0.12+r()*0.28;p.noff=r()*1000;
-}
-function initParticles(){
-  pCount=reducedMotion?RED_P:(W<768?MOB_P:MAX_P);
-  particles=[];
-  for(var i=0;i<pCount;i++)particles.push(mkParticle(rng));
+/* ── HSL→RGB ── */
+function hsl(h,s,l){
+  h=((h%360)+360)%360;
+  var c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2,r,g,b;
+  if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}
+  else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+  return[(r+m)*255|0,(g+m)*255|0,(b+m)*255|0];
 }
 
-/* ── Phase system ── */
-function getPhase(){
-  if(manualPhase>=0)return{idx:manualPhase,blend:0};
-  var total=PHASE_DUR+TRANS_DUR;
-  if(pTime>=total*3-TRANS_DUR)return{idx:2,blend:0};
-  var cycle=pTime%(total*3);
-  var idx=Math.min(Math.floor(cycle/total),2),within=cycle-idx*total;
-  var b=0;
-  if(within>PHASE_DUR&&idx<2){b=(within-PHASE_DUR)/TRANS_DUR;b=b*b*(3-2*b)}
-  return{idx:idx,blend:b};
-}
-function phaseT(ph){return ph.idx+ph.blend}
-
-/* ── Color ── */
-function lerpC(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
-function getColor(ct,pt){
-  var s=ct*0.3+(pt/2)*0.7;
-  s=Math.max(0,Math.min(1,s));
-  if(s<0.5)return lerpC(C_ORDER,C_TENSION,s*2);
-  return lerpC(C_TENSION,C_ENTROPY,(s-0.5)*2);
-}
-
-/* ── Phase parameters ── */
-function phaseParams(pt){
-  var t=Math.min(pt/2,1);
+/* ── Face param generation ── */
+function genFace(r){
   return{
-    orbital:_lerp(0.65,0.02,t),
-    radial:_lerp(0.7,0.0,t),
-    symStr:_lerp(0.55,0.0,t),
-    noiseStr:_lerp(0.03,0.85,t),
-    noiseScl:_lerp(0.003,0.006,t),
-    damp:_lerp(0.955,0.988,t),
-    fadeRate:_lerp(0.038,0.01,t),
-    jitter:_lerp(0,0.12,t)
+    headScale:.34+r()*.12,headRatio:1.15+r()*.25,jawW:.55+r()*.35,faceY:.42+r()*.06,
+    eyeY:.35+r()*.08,eyeSp:.22+r()*.14,eyeW:.13+r()*.09,eyeH:.07+r()*.07,
+    irisR:.55+r()*.35,pupilR:.35+r()*.25,
+    browOff:.06+r()*.08,browW:1+r()*.4,browTh:.4+r()*.6,browAng:-.1+r()*.2,
+    noseY:.52+r()*.08,noseW:.04+r()*.06,noseH:.08+r()*.1,
+    mouthY:.70+r()*.08,mouthW:.14+r()*.18,mouthTh:.4+r()*1.2,mouthCrv:-.12+r()*.24,
+    skinH:r()*360,skinS:.30+r()*.30,skinL:.58+r()*.22,
+    eyeH2:r()*360,eyeS:.50+r()*.40,eyeL:.45+r()*.20,
+    browH:r()*360,browS:.15+r()*.25,browL:.25+r()*.15,
+    mouthH2:(330+r()*50)%360,mouthS:.35+r()*.30,mouthL:.50+r()*.20,
+    asymX:-.03+r()*.06,asymY:-.02+r()*.04,browAsym:-.03+r()*.06
   };
 }
 
-/* ── Draw ── */
-function draw(){
-  var ph=getPhase(),pt=phaseT(ph),pp=phaseParams(pt);
+/* ── Lerp faces ── */
+function lerpF(a,b,t){var r={};for(var k in a)r[k]=typeof a[k]==='number'?a[k]+(b[k]-a[k])*t:a[k];return r}
+function ss(t){return t*t*(3-2*t)}
 
-  ctx.fillStyle='rgba('+BG[0]+','+BG[1]+','+BG[2]+','+pp.fadeRate.toFixed(4)+')';
-  ctx.fillRect(0,0,W,H);
+/* ── Morph state ── */
+var faces=[];for(var i=0;i<6;i++)faces.push(genFace(rng));
+var fIdx=0,mT=0;
 
-  gTime+=timeStep;
-  pTime+=1/60;
-
-  var cw=W/2,ch=H/2,minD=Math.min(W,H);
-
-  for(var i=0;i<pCount;i++){
-    var p=particles[i];
-    var dx=p.x-cw,dy=p.y-ch;
-    var r=Math.sqrt(dx*dx+dy*dy)+0.01;
-    var theta=Math.atan2(dy,dx);
-
-    /* Orbital (tangential) — faster near center */
-    var orbSpeed=pp.orbital*(1+0.4/(1+r*0.005));
-    var tx=-dy/r*orbSpeed,ty=dx/r*orbSpeed;
-
-    /* Radial (attract to target orbit) */
-    var pOptR=minD*p.targetR;
-    var rForce=(pOptR-r)*0.0008*pp.radial;
-    var rx=dx/r*rForce,ry=dy/r*rForce;
-
-    /* Symmetric perturbation */
-    var symAngle=theta*symN;
-    var symPert=noise2(Math.cos(symAngle)*r*0.005+gTime*0.2,Math.sin(symAngle)*r*0.005)*pp.symStr;
-
-    /* Noise flow */
-    var nAngle=fbm(p.x*pp.noiseScl+gTime*0.1+p.noff*0.001,p.y*pp.noiseScl+gTime*0.07,3)*Math.PI*4;
-    var nx=Math.cos(nAngle)*pp.noiseStr,ny=Math.sin(nAngle)*pp.noiseStr;
-
-    /* Jitter via noise (deterministic) */
-    var jx=noise2(p.x*0.05+gTime*5,p.y*0.05)*pp.jitter;
-    var jy=noise2(p.x*0.05,p.y*0.05+gTime*5)*pp.jitter;
-
-    /* Mouse force field */
-    var mfx=0,mfy=0;
-    if(mActive){
-      var mdx=mx-p.x,mdy=my-p.y;
-      var md=Math.sqrt(mdx*mdx+mdy*mdy)+1;
-      if(md<180){
-        var mf=(180-md)/180*0.1;
-        mfx=(-mdx/md*0.4-mdy/md*0.3)*mf;
-        mfy=(-mdy/md*0.4+mdx/md*0.3)*mf;
-      }
-    }
-
-    /* Sum forces */
-    var fx=tx*(1+symPert)+rx+nx+jx+mfx;
-    var fy=ty*(1+symPert)+ry+ny+jy+mfy;
-
-    p.vx=p.vx*pp.damp+fx*0.08;
-    p.vy=p.vy*pp.damp+fy*0.08;
-    p.x+=p.vx;p.y+=p.vy;
-    p.life++;
-
-    /* Opacity envelope */
-    var lf=p.life/p.maxLife,op=p.alpha;
-    if(lf<0.06)op*=lf/0.06;
-    else if(lf>0.85)op*=(1-lf)/0.15;
-
-    /* Vignette — subtle edge dimming */
-    var distC=r/(minD*0.5);
-    op*=1-Math.pow(Math.min(distC,1),2)*0.3;
-
-    /* Orbit proximity boost in ordered phases */
-    if(pp.radial>0.1){
-      var orbitFit=1-Math.min(Math.abs(r-pOptR)/(minD*0.08),1);
-      op*=_lerp(1,0.4+orbitFit*0.6,pp.radial);
-    }
-
-    /* Reset if dead or out of bounds */
-    if(p.life>p.maxLife||p.x<-60||p.x>W+60||p.y<-60||p.y>H+60){
-      rstParticle(p,resetRng);continue;
-    }
-
-    var col=getColor(p.ct,pt);
-    ctx.beginPath();
-    ctx.arc(p.x,p.y,p.sz,0,6.2832);
-    ctx.fillStyle='rgba('+Math.round(col[0])+','+Math.round(col[1])+','+Math.round(col[2])+','+op.toFixed(4)+')';
-    ctx.fill();
-  }
-
-  /* Phase label */
-  var names=['order','tension','entropy'];
-  var label=names[ph.idx];
-  if(ph.blend>0.01&&ph.idx<2)label+=' \u2192 '+names[ph.idx+1];
-  document.getElementById('phase-label').textContent='phase: '+label;
+function mSpeed(){
+  var b=redMo?.0003:.0008;
+  return mood==='calm'?b*.6:mood==='glitch'?b*2.5:mood==='intense'?b*1.5:b;
 }
 
-function loop(){if(!paused){draw();fid=requestAnimationFrame(loop)}}
+/* ── Gaze tracking ── */
+var mx=-1,my=-1,mAct=false,idle=0;
+var gx=0,gy=0,tgx=0,tgy=0;
+cv.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;mAct=true;idle=0});
+cv.addEventListener('mouseleave',function(){mAct=false});
+cv.addEventListener('touchmove',function(e){e.preventDefault();mx=e.touches[0].clientX;my=e.touches[0].clientY;mAct=true;idle=0},{passive:false});
+cv.addEventListener('touchstart',function(e){mx=e.touches[0].clientX;my=e.touches[0].clientY;mAct=true;idle=0},{passive:true});
+cv.addEventListener('touchend',function(){mAct=false});
+
+/* ── Blink system ── */
+var blinkT=0,blinking=false,nextBlink=3+rng()*4,blinkDur=.12;
+
+/* ── Time ── */
+var time=0;
+
+/* ── Render ── */
+function render(){
+  var dt=redMo?.008:.016;
+  time+=dt;
+
+  /* Morph */
+  mT+=mSpeed();
+  if(mT>=1){mT-=1;fIdx++;if(fIdx>=faces.length-1)faces.push(genFace(rng))}
+  var t=ss(mT);
+  if(mood==='glitch'){t+=Math.sin(time*47)*.015;t=Math.max(0,Math.min(1,t))}
+  var f=lerpF(faces[fIdx],faces[fIdx+1],t);
+
+  /* Gaze */
+  idle+=dt;
+  if(mAct&&idle<3){
+    var fcxS=innerWidth*.5,fcyS=innerHeight*f.faceY;
+    tgx=Math.max(-1,Math.min(1,(mx-fcxS)/(innerWidth*.5)));
+    tgy=Math.max(-1,Math.min(1,(my-fcyS)/(innerHeight*.5)));
+  }else{tgx=0;tgy=0}
+  var gs=redMo?.04:.08;
+  gx+=(tgx-gx)*gs;gy+=(tgy-gy)*gs;
+
+  /* Blink */
+  blinkT+=dt;
+  if(!blinking&&blinkT>=nextBlink){blinking=true;blinkT=0}
+  if(blinking&&blinkT>=blinkDur){blinking=false;blinkT=0;nextBlink=2+Math.random()*5}
+  var blinkAmt=blinking?Math.max(0,1-Math.abs(blinkT/blinkDur*2-1)*3):0;
+
+  /* Breathing */
+  var breath=Math.sin(time*1.2)*.01;
+  var breathY=Math.sin(time*1.2)*.3;
+
+  /* Face geometry */
+  var minD=Math.min(gW,gH);
+  var fW=minD*f.headScale,fH=fW*f.headRatio*(1+breath);
+  var cx=gW*.5,cy=gH*f.faceY+breathY;
+  var hw=fW*.5,hh=fH*.5;
+
+  /* Eyes */
+  var eyY=cy-hh+f.eyeY*fH;
+  var eLX=cx-f.eyeSp*fW*.5,eRX=cx+f.eyeSp*fW*.5+f.asymX*fW;
+  var eRY2=eyY+f.asymY*fH;
+  var ewP=f.eyeW*fW*.5,ehP=f.eyeH*fH*.5;
+  var ehBlink=ehP*(1-blinkAmt*.9);
+  var irP=f.irisR*ehP,puP=f.pupilR*irP;
+  var gazeMaxX=ewP*.3,gazeMaxY=ehP*.25;
+
+  /* Brows */
+  var brY=eyY-f.browOff*fH;
+  var brW=ewP*f.browW,brTh=f.browTh;
+
+  /* Nose */
+  var noY=cy-hh+f.noseY*fH,noW=f.noseW*fW*.5,noH=f.noseH*fH;
+
+  /* Mouth */
+  var moY=cy-hh+f.mouthY*fH,moW=f.mouthW*fW*.5,moTh=f.mouthTh;
+
+  /* Colors */
+  var skinC=hsl(f.skinH,f.skinS,f.skinL);
+  var skinD=hsl(f.skinH,f.skinS*.8,f.skinL*.75);
+  var eyeC=hsl(f.eyeH2,f.eyeS,f.eyeL);
+  var eyeD=hsl(f.eyeH2,f.eyeS*.9,f.eyeL*.6);
+  var brC=hsl(f.browH,f.browS,f.browL);
+  var moC=hsl(f.mouthH2,f.mouthS,f.mouthL);
+
+  /* Background base */
+  var bgH=240+Math.sin(time*.3)*15;
+  var bg1=hsl(bgH,.3,.06);
+  var bg2=hsl(bgH+10,.2,.10);
+
+  var img=ctx.createImageData(gW,gH);
+  var d=img.data;
+
+  for(var py=0;py<gH;py++){
+    for(var px=0;px<gW;px++){
+      var idx=(py*gW+px)*4;
+
+      /* Background */
+      var bdx=(px-cx)/(gW*.5),bdy=(py-cy)/(gH*.5);
+      var bd=Math.sqrt(bdx*bdx+bdy*bdy);
+      var bt=Math.min(1,bd*.7);
+      var cr=bg2[0]+(bg1[0]-bg2[0])*bt;
+      var cg=bg2[1]+(bg1[1]-bg2[1])*bt;
+      var cb=bg2[2]+(bg1[2]-bg2[2])*bt;
+
+      /* Subtle dot grid */
+      if(px%4===0&&py%4===0){cr+=3;cg+=3;cb+=4}
+
+      /* Head */
+      var hnx=(px-cx)/hw,hny=(py-cy)/hh;
+      var inside=false;
+      if(hny>=-1.05&&hny<=1.05){
+        var tw;
+        if(hny<=0)tw=Math.sqrt(Math.max(0,1-hny*hny));
+        else{var jw=f.jawW;tw=1-(1-jw)*hny*hny;var ew=Math.sqrt(Math.max(0,1-hny*hny));tw=Math.min(tw,ew)}
+        if(Math.abs(hnx)<=tw){
+          inside=true;
+          var sh=1-Math.abs(hnx)*.15-hny*.05;
+          if(Math.abs(hnx)>tw*.7)sh-=.1;
+          if(hny<-.3&&Math.abs(hnx)<.3)sh+=.05;
+          sh=Math.max(.7,Math.min(1.1,sh));
+          cr=skinC[0]*sh;cg=skinC[1]*sh;cb=skinC[2]*sh;
+        }
+      }
+
+      if(inside){
+        /* Nose */
+        var nny=(py-noY)/noH;
+        if(nny>=0&&nny<=1){
+          var nhw=noW*nny;
+          var nnx=px-cx;
+          if(Math.abs(nnx)<=nhw){cr*=.92;cg*=.92;cb*=.92}
+          if(nny>.8&&Math.abs(Math.abs(nnx)-noW*.4)<.8){cr=skinD[0];cg=skinD[1];cb=skinD[2]}
+        }
+
+        /* Mouth */
+        var mnx=(px-cx)/moW;
+        if(Math.abs(mnx)<=1){
+          var coff=f.mouthCrv*(1-mnx*mnx)*moW*2;
+          var mdy=py-(moY+coff);
+          if(Math.abs(mdy)<=moTh*.5+.5){
+            cr=moC[0];cg=moC[1];cb=moC[2];
+            if(Math.abs(mdy)<.5){cr*=.7;cg*=.7;cb*=.7}
+          }
+        }
+
+        /* Left eye */
+        var elx=(px-eLX)/ewP,ely=(py-eyY)/ehBlink;
+        if(elx*elx+ely*ely<1){
+          cr=235;cg=235;cb=240;
+          var icx=eLX+gx*gazeMaxX,icy=eyY+gy*gazeMaxY;
+          var id2=Math.sqrt((px-icx)*(px-icx)+(py-icy)*(py-icy));
+          if(id2<irP&&!blinking){
+            var it=id2/irP;
+            cr=eyeC[0]+(eyeD[0]-eyeC[0])*it*.5;
+            cg=eyeC[1]+(eyeD[1]-eyeC[1])*it*.5;
+            cb=eyeC[2]+(eyeD[2]-eyeC[2])*it*.5;
+            if(id2<puP){
+              cr=15;cg=12;cb=20;
+              if(Math.abs(px-(icx-puP*.3))<.8&&Math.abs(py-(icy-puP*.4))<.8){cr=240;cg=245;cb=255}
+            }
+          }
+        }
+
+        /* Right eye */
+        var erx=(px-eRX)/ewP,ery=(py-eRY2)/ehBlink;
+        if(erx*erx+ery*ery<1){
+          cr=235;cg=235;cb=240;
+          var icx2=eRX+gx*gazeMaxX,icy2=eRY2+gy*gazeMaxY;
+          var id3=Math.sqrt((px-icx2)*(px-icx2)+(py-icy2)*(py-icy2));
+          if(id3<irP&&!blinking){
+            var it2=id3/irP;
+            cr=eyeC[0]+(eyeD[0]-eyeC[0])*it2*.5;
+            cg=eyeC[1]+(eyeD[1]-eyeC[1])*it2*.5;
+            cb=eyeC[2]+(eyeD[2]-eyeC[2])*it2*.5;
+            if(id3<puP){
+              cr=15;cg=12;cb=20;
+              if(Math.abs(px-(icx2-puP*.3))<.8&&Math.abs(py-(icy2-puP*.4))<.8){cr=240;cg=245;cb=255}
+            }
+          }
+        }
+
+        /* Left brow */
+        var blx=(px-eLX)/brW;
+        if(Math.abs(blx)<1){
+          var bline=brY+f.browAng*(px-eLX);
+          if(Math.abs(py-bline)<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
+        }
+
+        /* Right brow */
+        var brx2=(px-eRX)/brW;
+        if(Math.abs(brx2)<1){
+          var bline2=brY-f.browAsym*fH+(-f.browAng+f.browAsym)*(px-eRX);
+          if(Math.abs(py-bline2)<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
+        }
+      }
+
+      /* Glitch scanline */
+      if(mood==='glitch'&&Math.sin(time*37+py*.5)>.97){cr+=30;cg-=20;cb+=40}
+
+      d[idx]=Math.max(0,Math.min(255,cr|0));
+      d[idx+1]=Math.max(0,Math.min(255,cg|0));
+      d[idx+2]=Math.max(0,Math.min(255,cb|0));
+      d[idx+3]=255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+}
+
+/* ── Loop ── */
+var paused=false,fid;
+function loop(){if(!paused){render();fid=requestAnimationFrame(loop)}}
 
 /* ── UI ── */
 var uiShow=false;
+document.getElementById('seed-val').textContent=seed;
 setTimeout(function(){document.getElementById('hint').style.opacity='0'},4000);
 
 document.addEventListener('keydown',function(e){
   if(e.key==='?'){uiShow=!uiShow;document.getElementById('ui').classList.toggle('show',uiShow)}
-  else if(e.key==='1'){manualPhase=0}
-  else if(e.key==='2'){manualPhase=1}
-  else if(e.key==='3'){manualPhase=2}
-  else if(e.key==='0'){manualPhase=-1}
-  else if(e.key===' '){e.preventDefault();paused=!paused;userPaused=paused;if(!paused)loop()}
 });
 
-/* ── Visibility (pause when tab hidden) ── */
+document.getElementById('btn-regen').addEventListener('click',function(){
+  seed=(Math.random()*999999|0)+1;
+  rng=mb32(seed);
+  faces=[];for(var j=0;j<6;j++)faces.push(genFace(rng));
+  fIdx=0;mT=0;
+  document.getElementById('seed-val').textContent=seed;
+  var u=new URL(location);u.searchParams.set('seed',seed);history.replaceState(null,'',u);
+});
+
+var mBtns=document.querySelectorAll('.mbtn');
+function setMood(m){
+  mood=m;
+  mBtns.forEach(function(b){b.classList.toggle('active',b.dataset.mood===m)});
+  var u=new URL(location);u.searchParams.set('mood',m);history.replaceState(null,'',u);
+}
+mBtns.forEach(function(b){
+  b.addEventListener('click',function(){setMood(b.dataset.mood)});
+  if(b.dataset.mood===mood)b.classList.add('active');
+});
+
+/* ── Visibility ── */
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){if(fid)cancelAnimationFrame(fid);paused=true}
-  else if(!userPaused){paused=false;loop()}
+  else{paused=false;loop()}
 });
 
 /* ── Resize ── */
-addEventListener('resize',function(){
-  resize();
-  ctx.fillStyle='rgb('+BG[0]+','+BG[1]+','+BG[2]+')';
-  ctx.fillRect(0,0,W,H);
-});
-
-/* ── Reduced motion ── */
-matchMedia('(prefers-reduced-motion:reduce)').addEventListener('change',function(e){
-  reducedMotion=e.matches;
-  timeStep=reducedMotion?0.0003:0.0015;
-  if(reducedMotion&&pCount>RED_P){particles.length=RED_P;pCount=RED_P}
-});
+addEventListener('resize',function(){resize()});
 
 /* ── Init ── */
-function init(){
-  rng=mulberry32(seed);
-  resetRng=mulberry32(seed+77777);
-  buildPerm(rng);
-  symN=4+((rng()*4)|0);
-  timeStep=reducedMotion?0.0003:0.0015;
-  resize();
-  gTime=0;pTime=0;
-  ctx.fillStyle='rgb('+BG[0]+','+BG[1]+','+BG[2]+')';
-  ctx.fillRect(0,0,W,H);
-  initParticles();
-  document.getElementById('seed-el').textContent='seed '+seed;
-  document.getElementById('ed-el').textContent='ed. '+SHA.substring(0,7);
-  if(fid)cancelAnimationFrame(fid);
-  paused=false;userPaused=false;
-  loop();
-}
-
-init();
+resize();loop();
 })();
 </script>
 </body>

@@ -187,6 +187,54 @@ var statusEl=document.getElementById('rsvp-status');
 var active=false;
 var greenMix=0;
 
+/* ── Pixel confetti ── */
+var confettiParts=[];
+var confettiCanvas=document.createElement('canvas');
+confettiCanvas.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:100';
+document.body.appendChild(confettiCanvas);
+var cctx=confettiCanvas.getContext('2d');
+var confettiRunning=false;
+
+function spawnConfetti(){
+  var w=innerWidth,h=innerHeight;
+  confettiCanvas.width=w;confettiCanvas.height=h;
+  confettiParts=[];
+  var colors=['#50ff28','#80ff60','#a0ffaa','#ffee44','#ff80cc','#44ddff','#ffffff','#88ff88'];
+  for(var i=0;i<120;i++){
+    confettiParts.push({
+      x:w*.2+Math.random()*w*.6,
+      y:h*.3+Math.random()*h*.2,
+      vx:(Math.random()-.5)*12,
+      vy:-4-Math.random()*10,
+      size:3+Math.random()*5|0,
+      color:colors[Math.random()*colors.length|0],
+      gravity:.25+Math.random()*.15,
+      life:1
+    });
+  }
+  if(!confettiRunning){confettiRunning=true;confettiLoop()}
+}
+
+function confettiLoop(){
+  var w=confettiCanvas.width,h=confettiCanvas.height;
+  cctx.clearRect(0,0,w,h);
+  var alive=false;
+  for(var i=0;i<confettiParts.length;i++){
+    var p=confettiParts[i];
+    if(p.life<=0)continue;
+    alive=true;
+    p.x+=p.vx;p.y+=p.vy;p.vy+=p.gravity;
+    p.vx*=.98;
+    p.life-=.008;
+    cctx.globalAlpha=Math.max(0,p.life);
+    cctx.fillStyle=p.color;
+    cctx.fillRect(p.x|0,p.y|0,p.size,p.size);
+  }
+  cctx.globalAlpha=1;
+  if(alive){requestAnimationFrame(confettiLoop)}
+  else{confettiRunning=false;cctx.clearRect(0,0,w,h)}
+}
+
 /* Only show RSVP toggle if ?id= is present */
 if(guestId){
   document.getElementById('rsvp-group').style.display='';
@@ -199,12 +247,8 @@ if(guestId){
         document.body.classList.add('active');
         toggleEl.setAttribute('aria-checked','true');
         statusEl.textContent='Kul!!!';
-      }else if(data.coming===false){
-        active=false;
-        document.body.classList.remove('active');
-        toggleEl.setAttribute('aria-checked','false');
-        statusEl.textContent='Mhä, synd.';
       }
+      /* if coming===false or null, leave toggle off with no status text */
     }).catch(function(){});
 }
 
@@ -230,6 +274,7 @@ function flip(){
   active=!active;
   document.body.classList.toggle('active',active);
   toggleEl.setAttribute('aria-checked',active);
+  if(active)spawnConfetti();
   sendRSVP(active);
 }
 toggleEl.addEventListener('click',flip);

@@ -168,7 +168,7 @@ body.active .toggle-knob{
   </div>
   <div class="rsvp-group" id="rsvp-group" style="display:none">
     <div class="toggle-wrap" id="toggle" role="switch" aria-checked="false" tabindex="0">
-      <span class="toggle-label">Jag kommer!</span>
+      <span class="toggle-label">Kommer du?</span>
       <div class="toggle-track"><div class="toggle-knob"></div></div>
     </div>
     <div class="rsvp-status" id="rsvp-status"></div>
@@ -200,8 +200,7 @@ function sendRSVP(coming){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({id:guestId,coming:coming})
   }).then(function(){
-    statusEl.textContent=coming?'vi ses!':'okej, synd!';
-    setTimeout(function(){statusEl.textContent=''},3000);
+    /* status already set in flip() */
   }).catch(function(){
     statusEl.textContent='kunde inte skicka, försök igen';
     setTimeout(function(){statusEl.textContent=''},4000);
@@ -213,6 +212,7 @@ function flip(){
   active=!active;
   document.body.classList.toggle('active',active);
   toggleEl.setAttribute('aria-checked',active);
+  statusEl.textContent=active?'Kul!!!':'Mhä, synd.';
   sendRSVP(active);
 }
 toggleEl.addEventListener('click',flip);

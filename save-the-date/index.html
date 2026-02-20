@@ -160,7 +160,7 @@ body.active .toggle-knob{
 <body>
 <canvas id="face" aria-label="Generative face artwork"></canvas>
 <div class="content">
-  <h1 class="headline" id="headline"></h1>
+  <h1 class="headline" id="headline" style="opacity:0">&nbsp;<br>&nbsp;</h1>
   <div class="details">
     <div class="detail-line">intimt och personligt bodega style</div>
     <div class="detail-line">save the date 18 april</div>
@@ -192,6 +192,8 @@ var headlines=[
 var pick=headlines[Math.random()*headlines.length|0];
 var hlEl=document.getElementById('headline');
 hlEl.innerHTML=pick[0]+'<br>'+pick[1];
+hlEl.style.transition='opacity 0.8s ease';
+requestAnimationFrame(function(){requestAnimationFrame(function(){hlEl.style.opacity='1'})});
 
 /* ── RSVP endpoint (replace with your Apps Script URL) ── */
 var RSVP_URL='https://europe-west1-aivars-save-the-date.cloudfunctions.net/rsvp';

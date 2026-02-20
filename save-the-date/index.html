@@ -25,11 +25,6 @@ canvas#face{
   display:block;width:100vw;height:100vh;
   image-rendering:pixelated;image-rendering:crisp-edges;
   z-index:0;
-  opacity:0.25;
-  transition:opacity 1.2s ease;
-}
-body.active canvas#face{
-  opacity:0.25;
 }
 body::after{
   content:'';position:fixed;inset:0;
@@ -102,29 +97,6 @@ body.active .detail-line.cool{
   gap:1.5vh;
   z-index:10;
 }
-.name-input{
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(180,180,190,0.15);
-  border-radius:4px;
-  padding:0.5em 1em;
-  font:inherit;
-  font-size:clamp(0.75rem, 1.8vw, 1rem);
-  color:rgba(207,194,176,0.8);
-  text-align:center;
-  letter-spacing:0.08em;
-  outline:none;
-  width:clamp(180px, 40vw, 280px);
-  transition:border-color 0.6s ease, color 0.6s ease, background 0.6s ease;
-}
-.name-input::placeholder{color:rgba(180,180,190,0.25)}
-.name-input:focus{border-color:rgba(180,180,190,0.35)}
-body.active .name-input{
-  border-color:rgba(80,255,40,0.3);
-  color:rgba(180,255,140,0.85);
-  background:rgba(80,255,40,0.04);
-}
-body.active .name-input:focus{border-color:rgba(80,255,40,0.5)}
-
 .toggle-wrap{
   position:relative;
   z-index:10;
@@ -134,13 +106,7 @@ body.active .name-input:focus{border-color:rgba(80,255,40,0.5)}
   cursor:pointer;
   user-select:none;
   -webkit-tap-highlight-color:transparent;
-  opacity:0.3;
-  pointer-events:none;
   transition:opacity 0.4s ease;
-}
-.toggle-wrap.enabled{
-  opacity:1;
-  pointer-events:auto;
 }
 .toggle-label{
   font-size:clamp(0.7rem, 1.8vw, 1rem);
@@ -200,8 +166,7 @@ body.active .toggle-knob{
     <div class="detail-line">18:e april</div>
     <div class="detail-line cool">bodega style</div>
   </div>
-  <div class="rsvp-group">
-    <input type="text" class="name-input" id="name-input" placeholder="Ditt namn" autocomplete="name" spellcheck="false">
+  <div class="rsvp-group" id="rsvp-group" style="display:none">
     <div class="toggle-wrap" id="toggle" role="switch" aria-checked="false" tabindex="0">
       <span class="toggle-label">Jag kommer!</span>
       <div class="toggle-track"><div class="toggle-knob"></div></div>
@@ -215,26 +180,25 @@ body.active .toggle-knob{
 /* ── RSVP endpoint (replace with your Apps Script URL) ── */
 var RSVP_URL='PASTE_YOUR_APPS_SCRIPT_URL_HERE';
 
-/* ── Toggle + RSVP ── */
+/* ── Read guest ID from URL ── */
+var guestId=new URLSearchParams(location.search).get('id');
 var toggleEl=document.getElementById('toggle');
-var nameInput=document.getElementById('name-input');
 var statusEl=document.getElementById('rsvp-status');
 var active=false;
 var greenMix=0;
 
-function updateToggleState(){
-  var hasName=nameInput.value.trim().length>0;
-  toggleEl.classList.toggle('enabled',hasName);
+/* Only show RSVP toggle if ?id= is present */
+if(guestId){
+  document.getElementById('rsvp-group').style.display='';
 }
-nameInput.addEventListener('input',updateToggleState);
 
-function sendRSVP(name,coming){
+function sendRSVP(coming){
   statusEl.textContent='skickar...';
   fetch(RSVP_URL,{
     method:'POST',
     mode:'no-cors',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name:name,coming:coming})
+    body:JSON.stringify({id:guestId,coming:coming})
   }).then(function(){
     statusEl.textContent=coming?'vi ses!':'okej, synd!';
     setTimeout(function(){statusEl.textContent=''},3000);
@@ -245,12 +209,11 @@ function sendRSVP(name,coming){
 }
 
 function flip(){
-  var name=nameInput.value.trim();
-  if(!name)return;
+  if(!guestId)return;
   active=!active;
   document.body.classList.toggle('active',active);
   toggleEl.setAttribute('aria-checked',active);
-  sendRSVP(name,active);
+  sendRSVP(active);
 }
 toggleEl.addEventListener('click',flip);
 toggleEl.addEventListener('keydown',function(e){
@@ -461,6 +424,9 @@ function render(){
       /* BG dot grid */
       if(px%5===0&&py%5===0){cr+=2;cg+=2;cb+=3}
 
+      /* Save BG color for head blending */
+      var bgR=cr,bgG=cg,bgB=cb;
+
       /* Face glow on background */
       var glDx=(px-cx)/hw,glDy=(py-cy)/hh;
       var glD=Math.sqrt(glDx*glDx+glDy*glDy);
@@ -607,6 +573,14 @@ function render(){
           var bDy2=Math.abs(py-bR);
           if(bDy2<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
         }
+      }
+
+      /* Blend head toward background at 25% opacity */
+      if(inside){
+        var headAlpha=0.25;
+        cr=bgR+(cr-bgR)*headAlpha;
+        cg=bgG+(cg-bgG)*headAlpha;
+        cb=bgB+(cb-bgB)*headAlpha;
       }
 
       d[idx]=Math.max(0,Math.min(255,cr|0));

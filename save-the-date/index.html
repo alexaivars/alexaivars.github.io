@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Save the Date — aivars.se</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:#080810;
+  font-family:'Courier New',monospace;
+  color:rgba(207,194,176,0.85);
+  transition:background 1.2s ease, color 1.2s ease;
+}
+body{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+body::after{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(8,8,16,0.55) 100%);
+  pointer-events:none;z-index:1;
+  transition:background 1.2s ease;
+}
+body.active{
+  background:#0a1a08;
+  color:rgba(180,255,140,0.9);
+}
+body.active::after{
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(10,26,8,0.55) 100%);
+}
+
+.content{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+  width:100%;
+  padding:5vh 5vw;
+  text-align:center;
+  gap:4vh;
+}
+
+.headline{
+  font-size:clamp(2.4rem, 8vw, 7rem);
+  font-weight:700;
+  letter-spacing:-0.03em;
+  line-height:1.05;
+  color:rgba(207,194,176,0.7);
+  transition:color 1.2s ease;
+}
+body.active .headline{
+  color:rgba(120,255,80,0.75);
+}
+
+.details{
+  display:flex;
+  flex-direction:column;
+  gap:1.5vh;
+}
+.detail-line{
+  font-size:clamp(0.85rem, 2.5vw, 1.6rem);
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:rgba(168,112,80,0.6);
+  transition:color 1.2s ease;
+}
+body.active .detail-line{
+  color:rgba(160,255,120,0.55);
+}
+
+.smile-arc{
+  width:clamp(80px, 12vw, 140px);
+  margin-top:-1.5vh;
+  color:rgba(207,194,176,0.35);
+  transition:color 1.2s ease;
+}
+.smile-arc svg{
+  width:100%;
+  height:auto;
+}
+body.active .smile-arc{
+  color:rgba(120,255,80,0.5);
+}
+
+.toggle-wrap{
+  position:relative;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.toggle-label{
+  font-size:clamp(0.7rem, 1.8vw, 1rem);
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  color:rgba(180,180,190,0.4);
+  transition:color 1.2s ease;
+}
+body.active .toggle-label{
+  color:rgba(140,255,100,0.7);
+}
+
+.toggle-track{
+  width:clamp(44px, 6vw, 56px);
+  height:clamp(22px, 3vw, 28px);
+  border-radius:999px;
+  background:rgba(180,180,190,0.12);
+  border:1px solid rgba(180,180,190,0.15);
+  position:relative;
+  transition:background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
+  flex-shrink:0;
+}
+body.active .toggle-track{
+  background:rgba(80,255,40,0.2);
+  border-color:rgba(80,255,40,0.4);
+  box-shadow:0 0 18px rgba(80,255,40,0.15);
+}
+.toggle-knob{
+  position:absolute;
+  top:2px;left:2px;
+  width:calc(clamp(22px, 3vw, 28px) - 6px);
+  height:calc(clamp(22px, 3vw, 28px) - 6px);
+  border-radius:50%;
+  background:rgba(180,180,190,0.35);
+  transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1), background 0.6s ease, box-shadow 0.6s ease;
+}
+body.active .toggle-knob{
+  transform:translateX(calc(clamp(44px, 6vw, 56px) - clamp(22px, 3vw, 28px) + 2px));
+  background:rgba(80,255,40,0.8);
+  box-shadow:0 0 10px rgba(80,255,40,0.4);
+}
+
+.glow{
+  position:fixed;
+  top:50%;left:50%;
+  width:80vmax;height:80vmax;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(80,255,40,0.04) 0%,transparent 70%);
+  pointer-events:none;
+  z-index:0;
+  opacity:0;
+  transition:opacity 1.5s ease;
+}
+body.active .glow{
+  opacity:1;
+}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="content">
+  <h1 class="headline">50 is so<br>next year</h1>
+  <div class="smile-arc" aria-hidden="true">
+    <svg viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 10 Q60 38 105 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
+  <div class="details">
+    <div class="detail-line">sittande middag</div>
+    <div class="detail-line">18:e april</div>
+    <div class="detail-line" style="color:rgba(96,120,144,0.5)">bodega style</div>
+  </div>
+  <div class="toggle-wrap" id="toggle" role="switch" aria-checked="false" tabindex="0">
+    <span class="toggle-label">Jag kommer!</span>
+    <div class="toggle-track"><div class="toggle-knob"></div></div>
+  </div>
+</div>
+<script>
+(function(){
+  var toggle=document.getElementById('toggle');
+  var body=document.body;
+  var on=false;
+  function flip(){
+    on=!on;
+    body.classList.toggle('active',on);
+    toggle.setAttribute('aria-checked',on);
+  }
+  toggle.addEventListener('click',flip);
+  toggle.addEventListener('keydown',function(e){
+    if(e.key===' '||e.key==='Enter'){e.preventDefault();flip()}
+  });
+})();
+</script>
+</body>
+</html>

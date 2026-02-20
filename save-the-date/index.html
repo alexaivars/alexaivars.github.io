@@ -178,7 +178,7 @@ body.active .toggle-knob{
 (function(){'use strict';
 
 /* ── RSVP endpoint (replace with your Apps Script URL) ── */
-var RSVP_URL='PASTE_YOUR_APPS_SCRIPT_URL_HERE';
+var RSVP_URL='https://europe-west1-aivars-save-the-date.cloudfunctions.net/rsvp';
 
 /* ── Read guest ID from URL ── */
 var guestId=new URLSearchParams(location.search).get('id');
@@ -196,11 +196,8 @@ function sendRSVP(coming){
   statusEl.textContent='skickar...';
   fetch(RSVP_URL,{
     method:'POST',
-    mode:'no-cors',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({id:guestId,coming:coming})
-  }).then(function(){
-    /* status already set in flip() */
   }).catch(function(){
     statusEl.textContent='kunde inte skicka, försök igen';
     setTimeout(function(){statusEl.textContent=''},4000);

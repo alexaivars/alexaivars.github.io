@@ -8,7 +8,7 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{
   width:100%;height:100%;overflow:hidden;
-  background:#080810;
+  background:#0a0a18;
   font-family:'Courier New',monospace;
   color:rgba(207,194,176,0.85);
   transition:background 1.2s ease, color 1.2s ease;
@@ -20,60 +20,48 @@ body{
   justify-content:center;
   position:relative;
 }
+canvas#face{
+  position:fixed;inset:0;
+  display:block;width:100vw;height:100vh;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  z-index:0;
+}
 body::after{
   content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse at center,transparent 40%,rgba(8,8,16,0.55) 100%);
+  background:radial-gradient(ellipse at center,transparent 25%,rgba(8,8,22,0.6) 100%);
   pointer-events:none;z-index:1;
   transition:background 1.2s ease;
 }
-body.active{
-  background:#0a1a08;
-  color:rgba(180,255,140,0.9);
-}
 body.active::after{
-  background:radial-gradient(ellipse at center,transparent 40%,rgba(10,26,8,0.55) 100%);
+  background:radial-gradient(ellipse at center,transparent 25%,rgba(8,26,8,0.6) 100%);
 }
 
 .content{
   position:relative;
-  z-index:2;
+  z-index:3;
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;
+  justify-content:flex-end;
   height:100vh;
   width:100%;
-  padding:5vh 5vw;
+  padding:5vh 5vw 8vh;
   text-align:center;
-  gap:4vh;
+  gap:3vh;
 }
 
 .headline{
-  font-size:clamp(2.4rem, 8vw, 7rem);
+  font-size:clamp(2.2rem, 7vw, 6rem);
   font-weight:700;
   letter-spacing:-0.03em;
   line-height:1.05;
-  color:rgba(207,194,176,0.7);
+  color:rgba(207,194,176,0.75);
   transition:color 1.2s ease;
+  text-shadow:0 0 30px rgba(0,0,0,0.8);
 }
 body.active .headline{
-  color:rgba(120,255,80,0.75);
-}
-
-.details{
-  display:flex;
-  flex-direction:column;
-  gap:1.5vh;
-}
-.detail-line{
-  font-size:clamp(0.85rem, 2.5vw, 1.6rem);
-  letter-spacing:0.12em;
-  text-transform:uppercase;
-  color:rgba(168,112,80,0.6);
-  transition:color 1.2s ease;
-}
-body.active .detail-line{
-  color:rgba(160,255,120,0.55);
+  color:rgba(120,255,80,0.8);
+  text-shadow:0 0 30px rgba(0,0,0,0.6), 0 0 60px rgba(80,255,40,0.1);
 }
 
 .smile-arc{
@@ -82,12 +70,30 @@ body.active .detail-line{
   color:rgba(207,194,176,0.35);
   transition:color 1.2s ease;
 }
-.smile-arc svg{
-  width:100%;
-  height:auto;
+.smile-arc svg{width:100%;height:auto}
+body.active .smile-arc{color:rgba(120,255,80,0.5)}
+
+.details{
+  display:flex;
+  flex-direction:column;
+  gap:1.2vh;
 }
-body.active .smile-arc{
-  color:rgba(120,255,80,0.5);
+.detail-line{
+  font-size:clamp(0.8rem, 2.2vw, 1.4rem);
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:rgba(168,112,80,0.65);
+  transition:color 1.2s ease;
+  text-shadow:0 0 20px rgba(0,0,0,0.8);
+}
+body.active .detail-line{
+  color:rgba(160,255,120,0.6);
+}
+.detail-line.cool{
+  color:rgba(96,120,144,0.5);
+}
+body.active .detail-line.cool{
+  color:rgba(120,220,140,0.5);
 }
 
 .toggle-wrap{
@@ -107,9 +113,7 @@ body.active .smile-arc{
   color:rgba(180,180,190,0.4);
   transition:color 1.2s ease;
 }
-body.active .toggle-label{
-  color:rgba(140,255,100,0.7);
-}
+body.active .toggle-label{color:rgba(140,255,100,0.7)}
 
 .toggle-track{
   width:clamp(44px, 6vw, 56px);
@@ -140,26 +144,10 @@ body.active .toggle-knob{
   background:rgba(80,255,40,0.8);
   box-shadow:0 0 10px rgba(80,255,40,0.4);
 }
-
-.glow{
-  position:fixed;
-  top:50%;left:50%;
-  width:80vmax;height:80vmax;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(80,255,40,0.04) 0%,transparent 70%);
-  pointer-events:none;
-  z-index:0;
-  opacity:0;
-  transition:opacity 1.5s ease;
-}
-body.active .glow{
-  opacity:1;
-}
 </style>
 </head>
 <body>
-<div class="glow"></div>
+<canvas id="face" aria-label="Generative face artwork"></canvas>
 <div class="content">
   <h1 class="headline">50 is so<br>next year</h1>
   <div class="smile-arc" aria-hidden="true">
@@ -170,7 +158,7 @@ body.active .glow{
   <div class="details">
     <div class="detail-line">sittande middag</div>
     <div class="detail-line">18:e april</div>
-    <div class="detail-line" style="color:rgba(96,120,144,0.5)">bodega style</div>
+    <div class="detail-line cool">bodega style</div>
   </div>
   <div class="toggle-wrap" id="toggle" role="switch" aria-checked="false" tabindex="0">
     <span class="toggle-label">Jag kommer!</span>
@@ -178,19 +166,396 @@ body.active .glow{
   </div>
 </div>
 <script>
-(function(){
-  var toggle=document.getElementById('toggle');
-  var body=document.body;
-  var on=false;
-  function flip(){
-    on=!on;
-    body.classList.toggle('active',on);
-    toggle.setAttribute('aria-checked',on);
+(function(){'use strict';
+
+/* ── Toggle ── */
+var toggleEl=document.getElementById('toggle');
+var active=false;
+var greenMix=0; /* 0=normal, 1=green */
+function flip(){
+  active=!active;
+  document.body.classList.toggle('active',active);
+  toggleEl.setAttribute('aria-checked',active);
+}
+toggleEl.addEventListener('click',flip);
+toggleEl.addEventListener('keydown',function(e){
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();flip()}
+});
+
+/* ── PRNG ── */
+function mb32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var seed=(Math.random()*999999|0)+1;
+var rng=mb32(seed);
+
+/* ── Reduced motion ── */
+var redMo=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ── Canvas ── */
+var cv=document.getElementById('face'),ctx=cv.getContext('2d');
+var gW,gH;
+
+function resize(){
+  var ps=Math.max(8,Math.min(16,Math.round(Math.min(innerWidth,innerHeight)/70)));
+  gW=Math.min(180,Math.ceil(innerWidth/ps));
+  gH=Math.min(180,Math.ceil(innerHeight/ps));
+  if(redMo){gW=Math.min(gW,90);gH=Math.min(gH,90)}
+  cv.width=gW;cv.height=gH;
+}
+
+/* ── HSL→RGB ── */
+function hsl(h,s,l){
+  h=((h%360)+360)%360;
+  var c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2,r,g,b;
+  if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}
+  else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+  return[(r+m)*255,(g+m)*255,(b+m)*255];
+}
+function mixC(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
+
+/* ── Face param generation ── */
+function genFace(r){
+  var skinH=r()*360;
+  return{
+    headScale:.40+r()*.10,headRatio:1.18+r()*.22,jawW:.58+r()*.32,faceY:.38+r()*.04,
+    eyeY:.36+r()*.06,eyeSp:.24+r()*.12,eyeW:.15+r()*.08,eyeH:.08+r()*.06,
+    irisR:.60+r()*.30,pupilR:.38+r()*.22,
+    browOff:.07+r()*.06,browW:1.05+r()*.35,browTh:.5+r()*.5,browAng:-.08+r()*.16,
+    noseY:.53+r()*.06,noseW:.04+r()*.05,noseH:.08+r()*.08,
+    mouthY:.72+r()*.06,mouthW:.16+r()*.14,mouthTh:.5+r()*.8,mouthCrv:-.08+r()*.16,
+    cheekY:.55+r()*.06,cheekW:.25+r()*.08,cheekStr:.08+r()*.12,
+    skinH:skinH,skinS:.35+r()*.25,skinL:.62+r()*.18,
+    eyeH2:r()*360,eyeS:.55+r()*.35,eyeL:.50+r()*.18,
+    browH:(skinH+120+r()*60)%360,browS:.12+r()*.20,browL:.22+r()*.13,
+    mouthH2:(340+r()*40)%360,mouthS:.40+r()*.25,mouthL:.52+r()*.18,
+    glowH:(skinH+180+r()*60)%360,glowS:.30+r()*.30,glowL:.15+r()*.10,
+    asymX:-.025+r()*.05,asymY:-.015+r()*.03,browAsym:-.02+r()*.04
+  };
+}
+
+/* ── Lerp ── */
+function lerpF(a,b,t){var r={};for(var k in a)r[k]=typeof a[k]==='number'?a[k]+(b[k]-a[k])*t:a[k];return r}
+
+/* ── Morph state ── */
+var faces=[];for(var i=0;i<6;i++)faces.push(genFace(rng));
+var fIdx=0,mT=0;
+
+function mSpeed(){return redMo?.0003:.0007}
+function morphEase(raw){
+  if(raw<.15)return 0;
+  if(raw>.85)return 1;
+  var t=(raw-.15)/.7;
+  return t*t*t*(t*(t*6-15)+10);
+}
+
+/* ── Gaze ── */
+var mouseX=-1,mouseY=-1,mAct=false,idle=0;
+var gx=0,gy=0,tgx=0,tgy=0;
+cv.addEventListener('mousemove',function(e){mouseX=e.clientX;mouseY=e.clientY;mAct=true;idle=0});
+cv.addEventListener('mouseleave',function(){mAct=false});
+cv.addEventListener('touchmove',function(e){e.preventDefault();mouseX=e.touches[0].clientX;mouseY=e.touches[0].clientY;mAct=true;idle=0},{passive:false});
+cv.addEventListener('touchstart',function(e){mouseX=e.touches[0].clientX;mouseY=e.touches[0].clientY;mAct=true;idle=0},{passive:true});
+cv.addEventListener('touchend',function(){mAct=false});
+
+/* ── Blink ── */
+var blinkT=0,blinking=false,nextBlink=3+rng()*4,blinkDur=.13;
+
+/* ── Time ── */
+var time=0;
+
+/* ── Render ── */
+function render(){
+  var dt=redMo?.008:.016;
+  time+=dt;
+
+  /* Smooth green transition */
+  var target=active?1:0;
+  greenMix+=(target-greenMix)*.03;
+
+  /* Morph */
+  mT+=mSpeed();
+  if(mT>=1){mT-=1;fIdx++;if(fIdx>=faces.length-1)faces.push(genFace(rng))}
+  var t=morphEase(mT);
+  if(t>0&&t<1){t+=Math.sin(time*8.3)*.005+Math.sin(time*13.7)*.003}
+  t=Math.max(0,Math.min(1,t));
+  var f=lerpF(faces[fIdx],faces[fIdx+1],t);
+
+  /* Gaze */
+  idle+=dt;
+  if(mAct&&idle<3){
+    var sx=innerWidth*.5,sy=innerHeight*f.faceY;
+    tgx=Math.max(-1,Math.min(1,(mouseX-sx)/(innerWidth*.45)));
+    tgy=Math.max(-1,Math.min(1,(mouseY-sy)/(innerHeight*.45)));
+  }else{tgx=0;tgy=0}
+  var gs=redMo?.04:.09;
+  gx+=(tgx-gx)*gs;gy+=(tgy-gy)*gs;
+
+  /* Blink */
+  blinkT+=dt;
+  if(!blinking&&blinkT>=nextBlink){blinking=true;blinkT=0}
+  if(blinking&&blinkT>=blinkDur){blinking=false;blinkT=0;nextBlink=2.5+Math.random()*4.5}
+  var bAmt=blinking?1-Math.abs(blinkT/blinkDur*2-1):0;
+  bAmt=bAmt*bAmt;
+
+  /* Breathing */
+  var breath=Math.sin(time*1.15)*.008;
+  var breathY=Math.sin(time*1.15)*.25;
+
+  /* Micro-drift */
+  var driftX=Math.sin(time*.73)*.15+Math.sin(time*1.91)*.08;
+  var driftY=Math.sin(time*.89)*.1+Math.sin(time*1.67)*.06;
+  if(redMo){driftX*=.3;driftY*=.3}
+
+  /* Face dims */
+  var minD=Math.min(gW,gH);
+  var fW=minD*f.headScale,fH=fW*f.headRatio*(1+breath);
+  var cx=gW*.5+driftX,cy=gH*f.faceY+breathY+driftY;
+  var hw=fW*.5,hh=fH*.5;
+
+  /* Eyes */
+  var eyY=cy-hh+f.eyeY*fH;
+  var eLX=cx-f.eyeSp*fW*.5,eRX=cx+f.eyeSp*fW*.5+f.asymX*fW;
+  var eRYoff=eyY+f.asymY*fH;
+  var ewP=f.eyeW*fW*.5,ehP=f.eyeH*fH*.5;
+  var ehB=ehP*(1-bAmt*.92);
+  var irR=f.irisR*ehP,puR=f.pupilR*irR;
+  var gmx=ewP*.32,gmy=ehP*.28;
+
+  /* Brows */
+  var brY=eyY-f.browOff*fH,brW=ewP*f.browW,brTh=f.browTh;
+
+  /* Nose + Mouth */
+  var noY=cy-hh+f.noseY*fH,noW=f.noseW*fW*.5,noH=f.noseH*fH;
+  var moY=cy-hh+f.mouthY*fH,moW=f.mouthW*fW*.5,moTh=f.mouthTh;
+
+  /* Cheeks */
+  var chY=cy-hh+f.cheekY*fH;
+  var chLX=cx-f.cheekW*fW,chRX=cx+f.cheekW*fW;
+
+  /* Colors */
+  var skinC=hsl(f.skinH,f.skinS,f.skinL);
+  var skinD=hsl(f.skinH,f.skinS*.8,f.skinL*.72);
+  var eyeC=hsl(f.eyeH2,f.eyeS,f.eyeL);
+  var eyeD=hsl(f.eyeH2,f.eyeS*.8,f.eyeL*.55);
+  var irisRing=hsl(f.eyeH2,f.eyeS*.7,f.eyeL*.4);
+  var brC=hsl(f.browH,f.browS,f.browL);
+  var moC=hsl(f.mouthH2,f.mouthS,f.mouthL);
+  var moD=hsl(f.mouthH2,f.mouthS*.9,f.mouthL*.6);
+  var chkC=hsl((f.skinH+340)%360,.45,f.skinL*.95);
+  var glowC=hsl(f.glowH,f.glowS,f.glowL);
+
+  /* Green tint for active state */
+  var greenTint=[40,180,30];
+  if(greenMix>.01){
+    skinC=mixC(skinC,mixC(skinC,greenTint,.25),greenMix);
+    skinD=mixC(skinD,mixC(skinD,greenTint,.2),greenMix);
+    eyeC=mixC(eyeC,[80,255,60],greenMix*.5);
+    irisRing=mixC(irisRing,[40,180,30],greenMix*.4);
+    brC=mixC(brC,[30,100,20],greenMix*.3);
+    moC=mixC(moC,[60,180,50],greenMix*.3);
+    moD=mixC(moD,[30,100,20],greenMix*.3);
+    chkC=mixC(chkC,[60,200,40],greenMix*.3);
+    glowC=mixC(glowC,[40,180,30],greenMix*.5);
   }
-  toggle.addEventListener('click',flip);
-  toggle.addEventListener('keydown',function(e){
-    if(e.key===' '||e.key==='Enter'){e.preventDefault();flip()}
-  });
+
+  /* Background */
+  var bgH=240+Math.sin(time*.25)*12;
+  var bg1=hsl(bgH,.28,.05);
+  var bg2=hsl(bgH+8,.18,.09);
+  if(greenMix>.01){
+    var gbg1=hsl(130,.25,.04);
+    var gbg2=hsl(135,.18,.07);
+    bg1=mixC(bg1,gbg1,greenMix);
+    bg2=mixC(bg2,gbg2,greenMix);
+  }
+
+  var img=ctx.createImageData(gW,gH);
+  var d=img.data;
+
+  for(var py=0;py<gH;py++){
+    for(var px=0;px<gW;px++){
+      var idx=(py*gW+px)*4;
+
+      /* BG gradient */
+      var bdx=(px-cx)/(gW*.5),bdy=(py-cy)/(gH*.5);
+      var bd=Math.sqrt(bdx*bdx+bdy*bdy);
+      var bt=Math.min(1,bd*.65);
+      var cr=bg2[0]+(bg1[0]-bg2[0])*bt;
+      var cg=bg2[1]+(bg1[1]-bg2[1])*bt;
+      var cb=bg2[2]+(bg1[2]-bg2[2])*bt;
+
+      /* BG dot grid */
+      if(px%5===0&&py%5===0){cr+=2;cg+=2;cb+=3}
+
+      /* Face glow on background */
+      var glDx=(px-cx)/hw,glDy=(py-cy)/hh;
+      var glD=Math.sqrt(glDx*glDx+glDy*glDy);
+      if(glD>1&&glD<2.5){
+        var glStr=(1-(glD-1)/1.5)*.15;
+        cr+=glowC[0]*glStr;cg+=glowC[1]*glStr;cb+=glowC[2]*glStr;
+      }
+
+      /* Head */
+      var hnx=(px-cx)/hw,hny=(py-cy)/hh;
+      var inside=false;
+      if(hny>=-1.02&&hny<=1.02){
+        var tw;
+        if(hny<=0){tw=Math.sqrt(Math.max(0,1-hny*hny))}
+        else{
+          var jw=f.jawW;
+          tw=1-(1-jw)*hny*hny;
+          var ew=Math.sqrt(Math.max(0,1-hny*hny));
+          tw=Math.min(tw,ew);
+        }
+        if(Math.abs(hnx)<=tw){
+          inside=true;
+          var sh=1;
+          sh-=Math.abs(hnx)*.12;
+          sh-=hny*.04;
+          if(Math.abs(hnx)>tw*.72)sh-=.08;
+          if(hny<-.35&&Math.abs(hnx)<.3)sh+=.04;
+          sh=Math.max(.72,Math.min(1.08,sh));
+          var edge=tw-Math.abs(hnx);
+          if(edge<.08&&edge>=0&&hnx<0)sh+=.06;
+          var tex=((px*7+py*13+((px*py)&0xFF))&0xFF)/255*.06-.03;
+          sh+=tex;
+          cr=skinC[0]*sh;cg=skinC[1]*sh;cb=skinC[2]*sh;
+        }
+      }
+
+      if(inside){
+        /* Cheek blush */
+        var chLD=Math.sqrt((px-chLX)*(px-chLX)+(py-chY)*(py-chY));
+        var chRD=Math.sqrt((px-chRX)*(px-chRX)+(py-chY)*(py-chY));
+        var chRad=fW*.12;
+        if(chLD<chRad){
+          var chT=(1-chLD/chRad)*f.cheekStr;
+          cr+=(chkC[0]-cr)*chT;cg+=(chkC[1]-cg)*chT;cb+=(chkC[2]-cb)*chT;
+        }
+        if(chRD<chRad){
+          var chT2=(1-chRD/chRad)*f.cheekStr;
+          cr+=(chkC[0]-cr)*chT2;cg+=(chkC[1]-cg)*chT2;cb+=(chkC[2]-cb)*chT2;
+        }
+
+        /* Nose */
+        var nny=(py-noY)/noH;
+        if(nny>=0&&nny<=1){
+          var nhw=noW*(nny*.7+.3);
+          var nnx=px-cx;
+          if(Math.abs(nnx)<=nhw){cr*=.93;cg*=.93;cb*=.93}
+          if(nny>.82&&Math.abs(Math.abs(nnx)-noW*.35)<.9){cr=skinD[0];cg=skinD[1];cb=skinD[2]}
+        }
+
+        /* Mouth */
+        var mnx=(px-cx)/moW;
+        if(Math.abs(mnx)<=1){
+          var curv=f.mouthCrv*(1-mnx*mnx)*moW*1.5;
+          var mdy=py-(moY+curv);
+          if(Math.abs(mdy)<=moTh*.5+.6){
+            if(mdy<0){cr=moC[0];cg=moC[1];cb=moC[2]}
+            else{cr=moC[0]*.9;cg=moC[1]*.9;cb=moC[2]*.9}
+            if(Math.abs(mdy)<.45){cr=moD[0];cg=moD[1];cb=moD[2]}
+          }
+        }
+
+        /* Left eye */
+        var elx=(px-eLX)/ewP,ely=(py-eyY)/ehB;
+        var eld=elx*elx+ely*ely;
+        if(eld<1){
+          var sclSh=.93+ely*.05;
+          cr=(232+skinC[0]*.03)*sclSh;cg=(231+skinC[1]*.02)*sclSh;cb=(240+skinC[2]*.01)*sclSh;
+          if(!blinking||bAmt<.7){
+            var iox=eLX+gx*gmx,ioy=eyY+gy*gmy;
+            var idx2=(px-iox)*(px-iox)+(py-ioy)*(py-ioy);
+            var idr=Math.sqrt(idx2);
+            if(idr<irR){
+              var iT=idr/irR;
+              if(iT>.75){
+                var rT=(iT-.75)/.25;
+                cr=irisRing[0]+(eyeC[0]-irisRing[0])*rT;
+                cg=irisRing[1]+(eyeC[1]-irisRing[1])*rT;
+                cb=irisRing[2]+(eyeC[2]-irisRing[2])*rT;
+              }else{
+                cr=eyeC[0]+(eyeD[0]-eyeC[0])*iT*.6;
+                cg=eyeC[1]+(eyeD[1]-eyeC[1])*iT*.6;
+                cb=eyeC[2]+(eyeD[2]-eyeC[2])*iT*.6;
+              }
+              if(idr<puR){
+                cr=12;cg=10;cb=18;
+                var hlx=iox-puR*.35,hly=ioy-puR*.45;
+                if(Math.abs(px-hlx)<.85&&Math.abs(py-hly)<.85){cr=245;cg=248;cb=255}
+              }
+            }
+          }
+        }
+
+        /* Right eye */
+        var erx=(px-eRX)/ewP,ery=(py-eRYoff)/ehB;
+        var erd=erx*erx+ery*ery;
+        if(erd<1){
+          var sclSh2=.93+ery*.05;
+          cr=(232+skinC[0]*.03)*sclSh2;cg=(231+skinC[1]*.02)*sclSh2;cb=(240+skinC[2]*.01)*sclSh2;
+          if(!blinking||bAmt<.7){
+            var iox2=eRX+gx*gmx,ioy2=eRYoff+gy*gmy;
+            var idx3=(px-iox2)*(px-iox2)+(py-ioy2)*(py-ioy2);
+            var idr2=Math.sqrt(idx3);
+            if(idr2<irR){
+              var iT2=idr2/irR;
+              if(iT2>.75){
+                var rT2=(iT2-.75)/.25;
+                cr=irisRing[0]+(eyeC[0]-irisRing[0])*rT2;
+                cg=irisRing[1]+(eyeC[1]-irisRing[1])*rT2;
+                cb=irisRing[2]+(eyeC[2]-irisRing[2])*rT2;
+              }else{
+                cr=eyeC[0]+(eyeD[0]-eyeC[0])*iT2*.6;
+                cg=eyeC[1]+(eyeD[1]-eyeC[1])*iT2*.6;
+                cb=eyeC[2]+(eyeD[2]-eyeC[2])*iT2*.6;
+              }
+              if(idr2<puR){
+                cr=12;cg=10;cb=18;
+                var hlx2=iox2-puR*.35,hly2=ioy2-puR*.45;
+                if(Math.abs(px-hlx2)<.85&&Math.abs(py-hly2)<.85){cr=245;cg=248;cb=255}
+              }
+            }
+          }
+        }
+
+        /* Brows */
+        var bLx=(px-eLX)/brW;
+        if(Math.abs(bLx)<1){
+          var bL=brY+f.browAng*(px-eLX);
+          var bDy=Math.abs(py-bL);
+          if(bDy<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
+        }
+        var bRx=(px-eRX)/brW;
+        if(Math.abs(bRx)<1){
+          var bR=brY-f.browAsym*fH+(-f.browAng+f.browAsym)*(px-eRX);
+          var bDy2=Math.abs(py-bR);
+          if(bDy2<brTh*.5+.5){cr=brC[0];cg=brC[1];cb=brC[2]}
+        }
+      }
+
+      d[idx]=Math.max(0,Math.min(255,cr|0));
+      d[idx+1]=Math.max(0,Math.min(255,cg|0));
+      d[idx+2]=Math.max(0,Math.min(255,cb|0));
+      d[idx+3]=255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+}
+
+/* ── Loop ── */
+var paused=false,fid;
+function loop(){if(!paused){render();fid=requestAnimationFrame(loop)}}
+
+/* ── Visibility ── */
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){if(fid)cancelAnimationFrame(fid);paused=true}
+  else{paused=false;loop()}
+});
+
+addEventListener('resize',function(){resize()});
+
+resize();loop();
 })();
 </script>
 </body>

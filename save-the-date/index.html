@@ -190,6 +190,22 @@ var greenMix=0;
 /* Only show RSVP toggle if ?id= is present */
 if(guestId){
   document.getElementById('rsvp-group').style.display='';
+  /* Load current RSVP state */
+  fetch(RSVP_URL+'?id='+encodeURIComponent(guestId))
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data.coming===true){
+        active=true;
+        document.body.classList.add('active');
+        toggleEl.setAttribute('aria-checked','true');
+        statusEl.textContent='Kul!!!';
+      }else if(data.coming===false){
+        active=false;
+        document.body.classList.remove('active');
+        toggleEl.setAttribute('aria-checked','false');
+        statusEl.textContent='Mhä, synd.';
+      }
+    }).catch(function(){});
 }
 
 function sendRSVP(coming){
@@ -198,7 +214,12 @@ function sendRSVP(coming){
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({id:guestId,coming:coming})
-  }).catch(function(){
+  }).then(function(r){return r.json()})
+    .then(function(data){
+      if(data.ok){
+        statusEl.textContent=data.coming?'Kul!!!':'Mhä, synd.';
+      }
+    }).catch(function(){
     statusEl.textContent='kunde inte skicka, försök igen';
     setTimeout(function(){statusEl.textContent=''},4000);
   });
@@ -209,7 +230,6 @@ function flip(){
   active=!active;
   document.body.classList.toggle('active',active);
   toggleEl.setAttribute('aria-checked',active);
-  statusEl.textContent=active?'Kul!!!':'Mhä, synd.';
   sendRSVP(active);
 }
 toggleEl.addEventListener('click',flip);

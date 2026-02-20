@@ -96,6 +96,36 @@ body.active .detail-line.cool{
   color:rgba(120,220,140,0.5);
 }
 
+.rsvp-group{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:1.5vh;
+  z-index:10;
+}
+.name-input{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(180,180,190,0.15);
+  border-radius:4px;
+  padding:0.5em 1em;
+  font:inherit;
+  font-size:clamp(0.75rem, 1.8vw, 1rem);
+  color:rgba(207,194,176,0.8);
+  text-align:center;
+  letter-spacing:0.08em;
+  outline:none;
+  width:clamp(180px, 40vw, 280px);
+  transition:border-color 0.6s ease, color 0.6s ease, background 0.6s ease;
+}
+.name-input::placeholder{color:rgba(180,180,190,0.25)}
+.name-input:focus{border-color:rgba(180,180,190,0.35)}
+body.active .name-input{
+  border-color:rgba(80,255,40,0.3);
+  color:rgba(180,255,140,0.85);
+  background:rgba(80,255,40,0.04);
+}
+body.active .name-input:focus{border-color:rgba(80,255,40,0.5)}
+
 .toggle-wrap{
   position:relative;
   z-index:10;
@@ -105,6 +135,13 @@ body.active .detail-line.cool{
   cursor:pointer;
   user-select:none;
   -webkit-tap-highlight-color:transparent;
+  opacity:0.3;
+  pointer-events:none;
+  transition:opacity 0.4s ease;
+}
+.toggle-wrap.enabled{
+  opacity:1;
+  pointer-events:auto;
 }
 .toggle-label{
   font-size:clamp(0.7rem, 1.8vw, 1rem);
@@ -114,6 +151,15 @@ body.active .detail-line.cool{
   transition:color 1.2s ease;
 }
 body.active .toggle-label{color:rgba(140,255,100,0.7)}
+
+.rsvp-status{
+  font-size:clamp(0.6rem, 1.4vw, 0.8rem);
+  letter-spacing:0.1em;
+  color:rgba(180,180,190,0.25);
+  height:1.2em;
+  transition:color 0.6s ease;
+}
+body.active .rsvp-status{color:rgba(120,255,80,0.35)}
 
 .toggle-track{
   width:clamp(44px, 6vw, 56px);
@@ -160,22 +206,57 @@ body.active .toggle-knob{
     <div class="detail-line">18:e april</div>
     <div class="detail-line cool">bodega style</div>
   </div>
-  <div class="toggle-wrap" id="toggle" role="switch" aria-checked="false" tabindex="0">
-    <span class="toggle-label">Jag kommer!</span>
-    <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <div class="rsvp-group">
+    <input type="text" class="name-input" id="name-input" placeholder="Ditt namn" autocomplete="name" spellcheck="false">
+    <div class="toggle-wrap" id="toggle" role="switch" aria-checked="false" tabindex="0">
+      <span class="toggle-label">Jag kommer!</span>
+      <div class="toggle-track"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="rsvp-status" id="rsvp-status"></div>
   </div>
 </div>
 <script>
 (function(){'use strict';
 
-/* ── Toggle ── */
+/* ── RSVP endpoint (replace with your Apps Script URL) ── */
+var RSVP_URL='PASTE_YOUR_APPS_SCRIPT_URL_HERE';
+
+/* ── Toggle + RSVP ── */
 var toggleEl=document.getElementById('toggle');
+var nameInput=document.getElementById('name-input');
+var statusEl=document.getElementById('rsvp-status');
 var active=false;
-var greenMix=0; /* 0=normal, 1=green */
+var greenMix=0;
+
+function updateToggleState(){
+  var hasName=nameInput.value.trim().length>0;
+  toggleEl.classList.toggle('enabled',hasName);
+}
+nameInput.addEventListener('input',updateToggleState);
+
+function sendRSVP(name,coming){
+  statusEl.textContent='skickar...';
+  fetch(RSVP_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name,coming:coming})
+  }).then(function(){
+    statusEl.textContent=coming?'vi ses!':'okej, synd!';
+    setTimeout(function(){statusEl.textContent=''},3000);
+  }).catch(function(){
+    statusEl.textContent='kunde inte skicka, försök igen';
+    setTimeout(function(){statusEl.textContent=''},4000);
+  });
+}
+
 function flip(){
+  var name=nameInput.value.trim();
+  if(!name)return;
   active=!active;
   document.body.classList.toggle('active',active);
   toggleEl.setAttribute('aria-checked',active);
+  sendRSVP(name,active);
 }
 toggleEl.addEventListener('click',flip);
 toggleEl.addEventListener('keydown',function(e){

@@ -25,6 +25,11 @@ canvas#face{
   display:block;width:100vw;height:100vh;
   image-rendering:pixelated;image-rendering:crisp-edges;
   z-index:0;
+  opacity:0.25;
+  transition:opacity 1.2s ease;
+}
+body.active canvas#face{
+  opacity:0.25;
 }
 body::after{
   content:'';position:fixed;inset:0;
@@ -55,23 +60,17 @@ body.active::after{
   font-weight:700;
   letter-spacing:-0.03em;
   line-height:1.05;
-  color:rgba(207,194,176,0.75);
-  transition:color 1.2s ease;
-  text-shadow:0 0 30px rgba(0,0,0,0.8);
+  color:rgba(207,194,176,0.9);
+  transition:color 1.2s ease, -webkit-text-stroke-color 1.2s ease;
+  -webkit-text-stroke:1.5px rgba(207,194,176,0.5);
+  text-shadow:0 0 20px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.8);
 }
 body.active .headline{
-  color:rgba(120,255,80,0.8);
-  text-shadow:0 0 30px rgba(0,0,0,0.6), 0 0 60px rgba(80,255,40,0.1);
+  color:rgba(120,255,80,0.9);
+  -webkit-text-stroke-color:rgba(120,255,80,0.4);
+  text-shadow:0 0 20px rgba(0,0,0,0.8), 0 0 50px rgba(80,255,40,0.15);
 }
 
-.smile-arc{
-  width:clamp(80px, 12vw, 140px);
-  margin-top:-1.5vh;
-  color:rgba(207,194,176,0.35);
-  transition:color 1.2s ease;
-}
-.smile-arc svg{width:100%;height:auto}
-body.active .smile-arc{color:rgba(120,255,80,0.5)}
 
 .details{
   display:flex;
@@ -82,12 +81,12 @@ body.active .smile-arc{color:rgba(120,255,80,0.5)}
   font-size:clamp(0.8rem, 2.2vw, 1.4rem);
   letter-spacing:0.12em;
   text-transform:uppercase;
-  color:rgba(168,112,80,0.65);
+  color:rgba(168,112,80,0.85);
   transition:color 1.2s ease;
-  text-shadow:0 0 20px rgba(0,0,0,0.8);
+  text-shadow:0 0 15px rgba(0,0,0,1), 0 0 30px rgba(0,0,0,0.7);
 }
 body.active .detail-line{
-  color:rgba(160,255,120,0.6);
+  color:rgba(160,255,120,0.8);
 }
 .detail-line.cool{
   color:rgba(96,120,144,0.5);
@@ -196,11 +195,6 @@ body.active .toggle-knob{
 <canvas id="face" aria-label="Generative face artwork"></canvas>
 <div class="content">
   <h1 class="headline">50 is so<br>next year</h1>
-  <div class="smile-arc" aria-hidden="true">
-    <svg viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M15 10 Q60 38 105 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-    </svg>
-  </div>
   <div class="details">
     <div class="detail-line">sittande middag</div>
     <div class="detail-line">18:e april</div>

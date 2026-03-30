@@ -230,17 +230,19 @@ var RSVP_URL='https://europe-west1-aivars-save-the-date.cloudfunctions.net/rsvp'
 
 /* ── Read guest info from URL ── */
 var guestId=new URLSearchParams(location.search).get('id');
-var guestName=new URLSearchParams(location.search).get('name');
 var toggleEl=document.getElementById('toggle');
 var statusEl=document.getElementById('rsvp-status');
 var greetingEl=document.getElementById('greeting');
 var active=false;
 var greenMix=0;
 
-function titleCaseName(name){
-  return (name||'')
+function formatGuestId(id){
+  return (id||'')
     .trim()
     .replace(/\+/g,' ')
+    .replace(/([a-zåäö])([A-ZÅÄÖ])/g,'$1 $2')
+    .replace(/([A-ZÅÄÖ])([A-ZÅÄÖ][a-zåäö])/g,'$1 $2')
+    .replace(/[_-]+/g,' ')
     .split(/\s+/)
     .filter(Boolean)
     .map(function(part){
@@ -251,7 +253,7 @@ function titleCaseName(name){
     .join(' ');
 }
 
-var formattedName=titleCaseName(guestName);
+var formattedName=formatGuestId(guestId);
 if(formattedName){
   greetingEl.textContent='Hej '+formattedName;
 }
